@@ -1,10 +1,8 @@
 import sys
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow
-from PyQt5.QtWidgets import QMenuBar
-from PyQt5.QtWidgets import QMenu
-from PyQt5.QtWidgets import QAction
+from PyQt6.QtCore import Qt 
+from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QTextEdit, QPushButton, QWidget
+from PyQt6.QtGui import QAction
 
 class Window(QMainWindow):
     """Main Window."""
@@ -35,21 +33,33 @@ class Window(QMainWindow):
         helpMenu = menuBar.addMenu("&Help")
         helpMenu.addAction(self.helpContentAction)
         helpMenu.addAction(self.aboutAction)
+    def _createMainView(self):
+        mainView = QHBoxLayout()
+
+        workspace = QVBoxLayout()
+        workspace.addWidget(QTextEdit())
+        workspace.addWidget(QPushButton())
+
+        fileListW = QListWidget()
+        fileListW.addItem(QListWidgetItem("testing"))
+
+        mainView.addWidget(fileListW)
+        mainView.addLayout(workspace)
+        return mainView
 
     def __init__(self, parent=None):
         """Initializer."""
         super().__init__(parent)
-        self.setWindowTitle("Python Menus & Toolbars")
+        self.setWindowTitle("BrownQt Work in Progress")
         self.resize(400, 200)
-        self.centralWidget = QLabel("Hello, World")
-        self.centralWidget.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+        self.centralWidget = QWidget()
+        self.centralWidget.setLayout = self._createMainView()
         self.setCentralWidget(self.centralWidget)
         self._createActions()
         self._createMenuBar()
 
 if __name__ == "__main__":
-
     app = QApplication(sys.argv)
     win = Window()
     win.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
