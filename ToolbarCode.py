@@ -4,8 +4,12 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QTextEdit, QPushButton, QWidget
 from PyQt6.QtGui import QAction
 
+
+
 class Window(QMainWindow):
-    """Main Window."""
+    def runSpacyModel(self):
+        print("TODO")
+
     def _createActions(self):
         self.newAction = QAction("&New", self)
         self.openAction = QAction("&Open", self)
@@ -37,8 +41,13 @@ class Window(QMainWindow):
         mainView = QHBoxLayout()
 
         workspace = QVBoxLayout()
+
         workspace.addWidget(QTextEdit())
-        workspace.addWidget(QPushButton())
+
+        runButton = QPushButton()
+        runButton.setText("")
+        runButton.clicked.connect(self.runSpacyModel)
+        workspace.addWidget(runButton)
 
         fileListW = QListWidget()
         fileListW.addItem(QListWidgetItem("testing"))
@@ -51,9 +60,9 @@ class Window(QMainWindow):
         """Initializer."""
         super().__init__(parent)
         self.setWindowTitle("BrownQt Work in Progress")
-        self.resize(400, 200)
+        self.resize(800, 400)
         self.centralWidget = QWidget()
-        self.centralWidget.setLayout = self._createMainView()
+        self.centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(self.centralWidget)
         self._createActions()
         self._createMenuBar()
