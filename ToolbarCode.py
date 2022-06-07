@@ -52,8 +52,8 @@ class Window(QMainWindow):
         fileListW = QListWidget()
         fileListW.addItem(QListWidgetItem("testing"))
 
-        mainView.addWidget(fileListW)
-        mainView.addLayout(workspace)
+        mainView.addWidget(fileListW, 1)
+        mainView.addLayout(workspace, 4)
         return mainView
 
     def __init__(self, parent=None):
