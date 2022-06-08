@@ -8,7 +8,7 @@ from PyQt6.QtGui import QAction
 
 class Window(QMainWindow):
     def runSpacyModel(self):
-        print("TODO")
+        self.outputText.setText(self.inputText.toPlainText()) 
 
     def _createActions(self):
         self.newAction = QAction("&New", self)
@@ -42,7 +42,13 @@ class Window(QMainWindow):
 
         workspace = QVBoxLayout()
 
-        workspace.addWidget(QTextEdit())
+        visuals = QHBoxLayout()
+        self.inputText = QTextEdit()
+        visuals.addWidget(self.inputText, 1)
+        self.outputText = QLabel("Analyzed code goes here")
+        self.outputText.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        visuals.addWidget(self.outputText, 1)
+        workspace.addLayout(visuals)
 
         runButton = QPushButton()
         runButton.setText("")
