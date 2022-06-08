@@ -1,14 +1,23 @@
 import sys
-
+#Begin PyQt Imports
 from PyQt6.QtCore import Qt 
-from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QTextEdit, QPushButton, QWidget
+from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QTextEdit, QPushButton, QWidget
 from PyQt6.QtGui import QAction
 
-
+#Begin ds_spacy Imports remember to have spacy 3.3 and pandas 
+import spacy
+from spacy.training import offsets_to_biluo_tags, iob_to_biluo
+from spacy import displacy
+from itertools import *
+from collections import Counter
 
 class Window(QMainWindow):
     def runSpacyModel(self):
-        self.outputText.setText(self.inputText.toPlainText()) 
+        doc = self.nlp(self.inputText.toPlainText())
+        outStr = ""
+        for token in doc:
+            outStr += "[" + token.text + "], " +"[" + token.tag_ + "], " +"["+ token.ent_type_ + "], "+"["+token.ent_iob_+"]\n"
+        self.outputText.setText(outStr) 
 
     def _createActions(self):
         self.newAction = QAction("&New", self)
@@ -44,6 +53,7 @@ class Window(QMainWindow):
 
         visuals = QHBoxLayout()
         self.inputText = QTextEdit()
+        self.inputText.setAcceptRichText(False)
         visuals.addWidget(self.inputText, 1)
         self.outputText = QLabel("Analyzed code goes here")
         self.outputText.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
@@ -51,7 +61,7 @@ class Window(QMainWindow):
         workspace.addLayout(visuals)
 
         runButton = QPushButton()
-        runButton.setText("")
+        runButton.setText("Run analyzer")
         runButton.clicked.connect(self.runSpacyModel)
         workspace.addWidget(runButton)
 
@@ -63,6 +73,7 @@ class Window(QMainWindow):
         return mainView
 
     def __init__(self, parent=None):
+        self.nlp = spacy.load('model-new')
         """Initializer."""
         super().__init__(parent)
         self.setWindowTitle("BrownQt Work in Progress")
