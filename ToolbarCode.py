@@ -4,18 +4,36 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QTextEdit, QPushButton, QWidget
 from PyQt6.QtGui import QAction
 
+from tkinter import *
+from tkinter import filedialog
+
 class Window(QMainWindow):
     """Main Window."""
+    # Variables
+    global currentFileName
+    currentFileName = False
+
     # Action Functionality Placeholder
-    def newFile(self):
-        # Logic for creating a new file goes here...
-        self.centralWidget.setText("<b>File > New</b> clicked")
     def openFile(self):
-        # Logic for opening an existing file goes here...
-        self.centralWidget.setText("<b>File > Open...</b> clicked")
+        currentFileName = filedialog.askopenfilename(initialdir = "/",
+                                            title = "Select a File",
+                                            filetypes = (("Text files",
+                                                        "*.txt*"),
+                                                       ("all files",
+                                                        "*.*")))
+        f = open(currentFileName, "r")
+        print(f.read()) 
+        f.close()
     def saveFile(self):
-        # Logic for saving a file goes here...
-        self.centralWidget.setText("<b>File > Save</b> clicked")
+        currentFileName = filedialog.askopenfilename(initialdir = "/",
+                                            title = "Select a File",
+                                            filetypes = (("Text files",
+                                                        "*.txt*"),
+                                                       ("all files",
+                                                        "*.*")))
+        f = open(currentFileName, "w")
+        f.write("""Put the shit that we have open later in this place so we can save it""")
+        f.close()
     def copyContent(self):
         # Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
@@ -34,7 +52,6 @@ class Window(QMainWindow):
 
     def _connectActions(self):
         # Connect File actions
-        self.newAction.triggered.connect(self.newFile)
         self.openAction.triggered.connect(self.openFile)
         self.saveAction.triggered.connect(self.saveFile)
         self.exitAction.triggered.connect(self.close)
@@ -48,7 +65,6 @@ class Window(QMainWindow):
 
     # Populating Buttons with Actions
     def _createActions(self):
-        self.newAction = QAction("&New", self)
         self.openAction = QAction("&Open", self)
         self.saveAction = QAction("&Save", self)
         self.exitAction = QAction("&Exit", self)
@@ -61,7 +77,6 @@ class Window(QMainWindow):
         menuBar = self.menuBar()
 
         fileMenu = menuBar.addMenu("&File")
-        fileMenu.addAction(self.newAction)
         fileMenu.addAction(self.openAction)
         fileMenu.addAction(self.saveAction)
         fileMenu.addSeparator()
@@ -94,7 +109,6 @@ class Window(QMainWindow):
         return mainView
     def _createContextMenu(self):
         self.centralWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
-        self.centralWidget.addAction(self.newAction)
         self.centralWidget.addAction(self.openAction)
         self.centralWidget.addAction(self.saveAction)
         separator = QAction(self)
