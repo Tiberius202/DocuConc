@@ -1,7 +1,7 @@
 import sys
-
+#Begin PyQt Imports
 from PyQt6.QtCore import Qt 
-from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QMenu, QMenuBar, QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QTextEdit, QPushButton, QWidget
+from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QTextEdit, QPushButton, QWidget
 from PyQt6.QtGui import QAction
 
 from tkinter import *
@@ -64,6 +64,21 @@ class Window(QMainWindow):
         self.aboutAction.triggered.connect(self.about)
 
     # Populating Buttons with Actions
+#Begin ds_spacy Imports remember to have spacy 3.3 and pandas 
+import spacy
+from spacy.training import offsets_to_biluo_tags, iob_to_biluo
+from spacy import displacy
+from itertools import *
+from collections import Counter
+
+class Window(QMainWindow):
+    def runSpacyModel(self):
+        doc = self.nlp(self.inputText.toPlainText())
+        outStr = ""
+        for token in doc:
+            outStr += "[" + token.text + "], " +"[" + token.tag_ + "], " +"["+ token.ent_type_ + "], "+"["+token.ent_iob_+"]\n"
+        self.outputText.setText(outStr) 
+
     def _createActions(self):
         self.openAction = QAction("&Open", self)
         self.saveAction = QAction("&Save", self)
@@ -98,14 +113,26 @@ class Window(QMainWindow):
         mainView = QHBoxLayout()
 
         workspace = QVBoxLayout()
-        workspace.addWidget(QTextEdit())
-        workspace.addWidget(QPushButton())
+
+        visuals = QHBoxLayout()
+        self.inputText = QTextEdit()
+        self.inputText.setAcceptRichText(False)
+        visuals.addWidget(self.inputText, 1)
+        self.outputText = QLabel("Analyzed code goes here")
+        self.outputText.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        visuals.addWidget(self.outputText, 1)
+        workspace.addLayout(visuals)
+
+        runButton = QPushButton()
+        runButton.setText("Run analyzer")
+        runButton.clicked.connect(self.runSpacyModel)
+        workspace.addWidget(runButton)
 
         fileListW = QListWidget()
         fileListW.addItem(QListWidgetItem("testing"))
 
-        mainView.addWidget(fileListW)
-        mainView.addLayout(workspace)
+        mainView.addWidget(fileListW, 1)
+        mainView.addLayout(workspace, 4)
         return mainView
     def _createContextMenu(self):
         self.centralWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
@@ -120,12 +147,13 @@ class Window(QMainWindow):
 
     # Creating Window
     def __init__(self, parent=None):
+        self.nlp = spacy.load('model-new')
         """Initializer."""
         super().__init__(parent)
         self.setWindowTitle("BrownQt Work in Progress")
-        self.resize(400, 200)
+        self.resize(800, 400)
         self.centralWidget = QWidget()
-        self.centralWidget.setLayout = self._createMainView()
+        self.centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(self.centralWidget)
         self._createActions()
         self._createMenuBar()
