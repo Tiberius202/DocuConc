@@ -1,7 +1,7 @@
 import sys
 #Begin PyQt Imports
 from PyQt6.QtCore import Qt 
-from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QTextEdit, QPushButton, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QFileDialog, QWidget
 from PyQt6.QtGui import QAction
 
 from tkinter import *
@@ -72,12 +72,15 @@ from itertools import *
 from collections import Counter
 
 class Window(QMainWindow):
+    def buttOpenFile(self):
+        fDialog = QFileDialog()
+        fDialog.getOpenFileNames()
+
     def runSpacyModel(self):
         doc = self.nlp(self.inputText.toPlainText())
-        outStr = ""
+        self.outputTree.clear()
         for token in doc:
-            outStr += "[" + token.text + "], " +"[" + token.tag_ + "], " +"["+ token.ent_type_ + "], "+"["+token.ent_iob_+"]\n"
-        self.outputText.setText(outStr) 
+            QTreeWidgetItem(self.outputTree, [token.text, token.tag_, token.ent_type_, token.ent_iob_] )
 
     def _createActions(self):
         self.openAction = QAction("&Open", self)
@@ -93,6 +96,7 @@ class Window(QMainWindow):
 
         fileMenu = menuBar.addMenu("&File")
         fileMenu.addAction(self.openAction)
+        self.openAction.triggered.connect(self.buttOpenFile)
         fileMenu.addAction(self.saveAction)
         fileMenu.addSeparator()
         fileMenu.addAction(self.exitAction)
@@ -118,9 +122,10 @@ class Window(QMainWindow):
         self.inputText = QTextEdit()
         self.inputText.setAcceptRichText(False)
         visuals.addWidget(self.inputText, 1)
-        self.outputText = QLabel("Analyzed code goes here")
-        self.outputText.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        visuals.addWidget(self.outputText, 1)
+        self.outputTree = QTreeWidget()
+        self.outputTree.setColumnCount(4)
+        self.outputTree.setHeaderLabels(["Text", "Tag", "Entry Type", "Entry IOB"])
+        visuals.addWidget(self.outputTree, 1)
         workspace.addLayout(visuals)
 
         runButton = QPushButton()
@@ -129,7 +134,6 @@ class Window(QMainWindow):
         workspace.addWidget(runButton)
 
         fileListW = QListWidget()
-        fileListW.addItem(QListWidgetItem("testing"))
 
         mainView.addWidget(fileListW, 1)
         mainView.addLayout(workspace, 4)
@@ -151,7 +155,7 @@ class Window(QMainWindow):
         """Initializer."""
         super().__init__(parent)
         self.setWindowTitle("BrownQt Work in Progress")
-        self.resize(800, 400)
+        self.resize(1280, 720)
         self.centralWidget = QWidget()
         self.centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(self.centralWidget)
