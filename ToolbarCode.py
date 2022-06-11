@@ -158,7 +158,7 @@ class Window(QMainWindow):
         self.centralWidget = QWidget()
         self.centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(self.centralWidget)
-        self.nlp = spacy.load(os.getcwd() + "\model-new")
+        self.nlp = spacy.load(os.path.join(os.getcwd(), "model-new"))
         self._createActions()
         self._createMenuBar()
         self._createContextMenu()
