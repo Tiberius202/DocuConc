@@ -1,10 +1,17 @@
 import sys
-#Begin PyQt Imports
+import spacy
+import os
+
 from PyQt6.QtCore import Qt 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QFileDialog, QWidget
 from PyQt6.QtGui import QAction
 
-from tkinter import *
+#Begin ds_spacy Imports remember to have spacy 3.3 and pandas 
+from spacy.training import offsets_to_biluo_tags, iob_to_biluo
+from spacy import displacy
+from itertools import *
+from collections import Counter
+
 from tkinter import filedialog
 
 class Window(QMainWindow):
@@ -62,16 +69,7 @@ class Window(QMainWindow):
         # Connect Help actions
         self.helpContentAction.triggered.connect(self.helpContent)
         self.aboutAction.triggered.connect(self.about)
-
-    # Populating Buttons with Actions
-#Begin ds_spacy Imports remember to have spacy 3.3 and pandas 
-import spacy
-from spacy.training import offsets_to_biluo_tags, iob_to_biluo
-from spacy import displacy
-from itertools import *
-from collections import Counter
-
-class Window(QMainWindow):
+    #Button Open File. Uses PyQtMenu
     def buttOpenFile(self):
         fDialog = QFileDialog()
         fDialog.getOpenFileNames()
@@ -82,6 +80,7 @@ class Window(QMainWindow):
         for token in doc:
             QTreeWidgetItem(self.outputTree, [token.text, token.tag_, token.ent_type_, token.ent_iob_] )
 
+    # Populating Buttons with Actions
     def _createActions(self):
         self.openAction = QAction("&Open", self)
         self.saveAction = QAction("&Save", self)
@@ -134,12 +133,13 @@ class Window(QMainWindow):
         workspace.addWidget(runButton)
 
         fileListW = QListWidget()
+        fileListW.addItem(QListWidgetItem("testing"))
 
         mainView.addWidget(fileListW, 1)
         mainView.addLayout(workspace, 4)
         return mainView
     def _createContextMenu(self):
-        self.centralWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
+        #self.centralWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.centralWidget.addAction(self.openAction)
         self.centralWidget.addAction(self.saveAction)
         separator = QAction(self)
@@ -151,14 +151,14 @@ class Window(QMainWindow):
 
     # Creating Window
     def __init__(self, parent=None):
-        self.nlp = spacy.load('model-new')
-        """Initializer."""
+        
         super().__init__(parent)
         self.setWindowTitle("BrownQt Work in Progress")
         self.resize(1280, 720)
         self.centralWidget = QWidget()
         self.centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(self.centralWidget)
+        self.nlp = spacy.load(os.getcwd() + "\model-new")
         self._createActions()
         self._createMenuBar()
         self._createContextMenu()
