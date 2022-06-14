@@ -132,10 +132,14 @@ class Window(QMainWindow):
         runButton.clicked.connect(self.runSpacyModel)
         workspace.addWidget(runButton)
 
-        fileListW = QListWidget()
-        fileListW.addItem(QListWidgetItem("testing"))
+        leftBar = QVBoxLayout()
+        openFileW = QListWidget()
+        currFileW = QListWidget()
+        openFileW.addItem(QListWidgetItem("testing"))
+        leftBar.addWidget(openFileW)
+        leftBar.addWidget(currFileW)
 
-        mainView.addWidget(fileListW, 1)
+        mainView.addLayout(leftBar, 1)
         mainView.addLayout(workspace, 4)
         return mainView
     def _createContextMenu(self):
