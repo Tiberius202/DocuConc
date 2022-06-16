@@ -15,10 +15,16 @@ from collections import Counter
 from tkinter import filedialog
 
 class Window(QMainWindow):
-    """Main Window."""
-    # Variables
-    global currentFileName
-    currentFileName = False
+    #TODO: AXE OR NOT. Button Open File. Uses PyQtMenu
+    #def buttOpenFile(self):
+    #   fDialog = QFileDialog()
+    #   fDialog.getOpenFileNames() 
+
+    def runSpacyModel(self):
+        doc = self.nlp(self.inputText.toPlainText())
+        self.outputTree.clear()
+        for token in doc:
+            QTreeWidgetItem(self.outputTree, [token.text, token.tag_, token.ent_type_, token.ent_iob_] )
 
     # Action Functionality Placeholder
     def openFile(self):
@@ -41,6 +47,8 @@ class Window(QMainWindow):
         f = open(currentFileName, "w")
         f.write("""Put the shit that we have open later in this place so we can save it""")
         f.close()
+    def close(self):
+        print("TODO: most likely replace with close all")
     def copyContent(self):
         # Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
@@ -56,62 +64,49 @@ class Window(QMainWindow):
     def about(self):
         # Logic for showing an about dialog content goes here...
         self.centralWidget.setText("<b>Help > About...</b> clicked")
-
-    def _connectActions(self):
-        # Connect File actions
-        self.openAction.triggered.connect(self.openFile)
-        self.saveAction.triggered.connect(self.saveFile)
-        self.exitAction.triggered.connect(self.close)
-        # Connect Edit actions
-        self.copyAction.triggered.connect(self.copyContent)
-        self.pasteAction.triggered.connect(self.pasteContent)
-        self.cutAction.triggered.connect(self.cutContent)
-        # Connect Help actions
-        self.helpContentAction.triggered.connect(self.helpContent)
-        self.aboutAction.triggered.connect(self.about)
-    #Button Open File. Uses PyQtMenu
-    def buttOpenFile(self):
-        fDialog = QFileDialog()
-        fDialog.getOpenFileNames()
-
-    def runSpacyModel(self):
-        doc = self.nlp(self.inputText.toPlainText())
-        self.outputTree.clear()
-        for token in doc:
-            QTreeWidgetItem(self.outputTree, [token.text, token.tag_, token.ent_type_, token.ent_iob_] )
-
-    # Populating Buttons with Actions
-    def _createActions(self):
-        self.openAction = QAction("&Open", self)
-        self.saveAction = QAction("&Save", self)
-        self.exitAction = QAction("&Exit", self)
-        self.copyAction = QAction("&Copy", self)
-        self.pasteAction = QAction("&Paste", self)
-        self.cutAction = QAction("&Cut", self)
-        self.helpContentAction = QAction("&Help Content", self)
-        self.aboutAction = QAction("&About", self)
     def _createMenuBar(self):
         menuBar = self.menuBar()
 
         fileMenu = menuBar.addMenu("&File")
-        fileMenu.addAction(self.openAction)
-        self.openAction.triggered.connect(self.buttOpenFile)
-        fileMenu.addAction(self.saveAction)
+        openAction = QAction("&Open", self)
+        openAction.triggered.connect(self.openFile)
+        fileMenu.addAction(openAction)
+
+        saveAction = QAction("&Save", self)
+        saveAction.triggered.connect(self.saveFile)
+        fileMenu.addAction(saveAction)
+
         fileMenu.addSeparator()
-        fileMenu.addAction(self.exitAction)
+
+        exitAction = QAction("&Exit", self)
+        exitAction.triggered.connect(self.close)
+        fileMenu.addAction(exitAction)
 
         editMenu = menuBar.addMenu("&Edit")
-        editMenu.addAction(self.copyAction)
-        editMenu.addAction(self.pasteAction)
-        editMenu.addAction(self.cutAction)
+        copyAction = QAction("&Copy", self)
+        copyAction.triggered.connect(self.copyContent)
+        editMenu.addAction(copyAction)
+
+        pasteAction = QAction("&Paste", self)
+        pasteAction.triggered.connect(self.pasteContent)
+        editMenu.addAction(pasteAction)
+
+        cutAction = QAction("&Cut", self)
+        cutAction.triggered.connect(self.cutContent)
+        editMenu.addAction(cutAction)
         editMenu.addSeparator()
         findMenu = editMenu.addMenu("Find and Replace")
 
         settingsMenu = menuBar.addMenu("&Settings")
 
         helpMenu = menuBar.addMenu("&Help")
-        helpMenu.addAction(self.helpContentAction)
-        helpMenu.addAction(self.aboutAction)
+        helpContentAction = QAction("&Help Content", self)
+        helpContentAction.triggered.connect(self.helpContent)
+        helpMenu.addAction(helpContentAction)
+        aboutAction = QAction("&About", self)
+        aboutAction.triggered.connect(self.about)
+        helpMenu.addAction(aboutAction)
+
     def _createMainView(self):
         mainView = QHBoxLayout()
 
@@ -142,20 +137,19 @@ class Window(QMainWindow):
         mainView.addLayout(leftBar, 1)
         mainView.addLayout(workspace, 4)
         return mainView
-    def _createContextMenu(self):
-        #self.centralWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
-        self.centralWidget.addAction(self.openAction)
-        self.centralWidget.addAction(self.saveAction)
-        separator = QAction(self)
-        separator.setSeparator(True)
-        self.centralWidget.addAction(separator)
-        self.centralWidget.addAction(self.copyAction)
-        self.centralWidget.addAction(self.pasteAction)
-        self.centralWidget.addAction(self.cutAction)
+#    def _createContextMenu(self):
+#        #self.centralWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
+#        self.centralWidget.addAction(self.openAction)
+#        self.centralWidget.addAction(self.saveAction)
+#        separator = QAction(self)
+#        separator.setSeparator(True)
+#        self.centralWidget.addAction(separator)
+#        self.centralWidget.addAction(self.copyAction)
+#        self.centralWidget.addAction(self.pasteAction)
+#        self.centralWidget.addAction(self.cutAction)
 
     # Creating Window
     def __init__(self, parent=None):
-        
         super().__init__(parent)
         self.setWindowTitle("BrownQt Work in Progress")
         self.resize(1280, 720)
@@ -163,10 +157,8 @@ class Window(QMainWindow):
         self.centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(self.centralWidget)
         self.nlp = spacy.load(os.path.join(os.getcwd(), "model-new"))
-        self._createActions()
         self._createMenuBar()
-        self._createContextMenu()
-        self._connectActions()
+        #self._createContextMenu()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
