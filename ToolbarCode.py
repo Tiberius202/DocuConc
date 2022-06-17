@@ -78,6 +78,7 @@ class Window(QMainWindow):
         if self.documentViewAction.isChecked():
             self.inputText = QTextEdit()
             self.inputText.setAcceptRichText(False)
+            self.inputText.setReadOnly(True)
             self.visuals.insertWidget(0, self.inputText, 1)
         else:
             self.visuals.removeWidget(self.inputText)
