@@ -79,7 +79,7 @@ class Window(QMainWindow):
         self.currFileW.sortItems()
     def currListDoubleClick(self, item):
         if self.documentViewAction.isChecked():
-            self.inputText.setText("TODO: Actual File" + item.toolTip())
+            self.inputText.setText(self.openFileDict[item.toolTip()].read())
     def toggleTextEditor(self):
         if self.documentViewAction.isChecked():
             self.inputText = QTextEdit()
