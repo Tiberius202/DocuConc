@@ -11,8 +11,6 @@ from PyQt6.QtGui import QAction
 from itertools import *
 
 from tkinter import filedialog
-#Processing helpers
-
 
 class Window(QMainWindow):
     #TODO: AXE OR NOT. Button Open File. Uses PyQtMenu
@@ -33,12 +31,14 @@ class Window(QMainWindow):
 
     # Action Functionality Placeholder
     def openFile(self):
-        selectedFileNames = QFileDialog.getOpenFileNames(self, 
-            "Select a File to Open", 
-            os.getcwd(), "Text Files (*.txt);; All files (*)")
+        selectedFileNames = filedialog.askopenfilenames(initialdir = "/",
+                                            title = "Select a File to Open",
+                                            filetypes = (("Text files",
+                                                        "*.txt*"),
+                                                       ("all files",
+                                                        "*.*")))
         if len(selectedFileNames) > 0:
             for fileName in selectedFileNames:
-                fileName = str(fileName)
                 #TODO: No duplicates
                 self.openFileDict.update({fileName : open(fileName, "r")}) 
                 listItem = QListWidgetItem()
