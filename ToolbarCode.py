@@ -7,10 +7,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout,
 from PyQt6.QtGui import QAction
 
 #Begin ds_spacy Imports remember to have spacy 3.3 and pandas 
-from spacy.training import offsets_to_biluo_tags, iob_to_biluo
-from spacy import displacy
 from itertools import *
-from collections import Counter
 
 from tkinter import filedialog
 
@@ -28,29 +25,34 @@ class Window(QMainWindow):
 
     # Action Functionality Placeholder
     def openFile(self):
-        currentFileName = filedialog.askopenfilename(initialdir = "/",
-                                            title = "Select a File",
+        selectedFileNames = filedialog.askopenfilenames(initialdir = "/",
+                                            title = "Select a File to Open",
                                             filetypes = (("Text files",
                                                         "*.txt*"),
                                                        ("all files",
                                                         "*.*")))
-        f = open(currentFileName, "r")
-        print(f.read()) 
-        f.close()
+        if len(selectedFileNames) > 0:
+            for fileName in selectedFileNames:
+                self.openFileDict.update({fileName : open(fileName, "r")}) 
+                listItem = QListWidgetItem()
+                listItem.setToolTip(fileName)
+                listItem.setText(fileName.replace("\\", "/").split("/")[-1])
+                self.openFileW.addItem(listItem)
+                self.openFileW.sortItems()
     def saveFile(self):
-        currentFileName = filedialog.askopenfilename(initialdir = "/",
+        selectedFileNames = filedialog.askopenfilename(initialdir = "/",
                                             title = "Select a File",
                                             filetypes = (("Text files",
                                                         "*.txt*"),
                                                        ("all files",
                                                         "*.*")))
-        f = open(currentFileName, "w")
-        f.write("""Put the shit that we have open later in this place so we can save it""")
-        f.close()
+        if len(selectedFileNames) > 0:                                                 
+            f = open(selectedFileNames, "w")
+            f.write("""TODO:Put the shit that we have open later in this place so we can save it""")
     def close(self):
         print("TODO: most likely replace with close all")
     def copyContent(self):
-        # Logic for copying content goes here...
+        # TODO: ALL of these are broken Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
     def pasteContent(self):
         # Logic for pasting content goes here...
@@ -64,6 +66,9 @@ class Window(QMainWindow):
     def about(self):
         # Logic for showing an about dialog content goes here...
         self.centralWidget.setText("<b>Help > About...</b> clicked")
+    def openListDoubleClick(self, item):
+        self.currFileW.addItem(QListWidgetItem(item))
+        self.currFileW.sortItems()
     def _createMenuBar(self):
         menuBar = self.menuBar()
 
@@ -128,37 +133,32 @@ class Window(QMainWindow):
         workspace.addWidget(runButton)
 
         leftBar = QVBoxLayout()
-        openFileW = QListWidget()
-        currFileW = QListWidget()
-        openFileW.addItem(QListWidgetItem("testing"))
-        leftBar.addWidget(openFileW)
-        leftBar.addWidget(currFileW)
+        self.openFileW = QListWidget()
+        self.openFileW.itemDoubleClicked.connect(self.openListDoubleClick)
+        self.currFileW = QListWidget()
+        leftBar.addWidget(self.openFileW)
+        leftBar.addWidget(self.currFileW)
 
         mainView.addLayout(leftBar, 1)
         mainView.addLayout(workspace, 4)
         return mainView
-#    def _createContextMenu(self):
-#        #self.centralWidget.setContextMenuPolicy(Qt.ActionsContextMenu)
-#        self.centralWidget.addAction(self.openAction)
-#        self.centralWidget.addAction(self.saveAction)
-#        separator = QAction(self)
-#        separator.setSeparator(True)
-#        self.centralWidget.addAction(separator)
-#        self.centralWidget.addAction(self.copyAction)
-#        self.centralWidget.addAction(self.pasteAction)
-#        self.centralWidget.addAction(self.cutAction)
 
     # Creating Window
     def __init__(self, parent=None):
+        #GUI setup
         super().__init__(parent)
         self.setWindowTitle("BrownQt Work in Progress")
         self.resize(1280, 720)
         self.centralWidget = QWidget()
         self.centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(self.centralWidget)
-        self.nlp = spacy.load(os.path.join(os.getcwd(), "model-new"))
         self._createMenuBar()
-        #self._createContextMenu()
+        #initialize model
+        self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "model-new"))
+        #Functionality
+        self.openFileDict = {}
+        self.currFileDict = {}
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
