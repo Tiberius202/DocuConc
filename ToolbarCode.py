@@ -33,6 +33,7 @@ class Window(QMainWindow):
                                                         "*.*")))
         if len(selectedFileNames) > 0:
             for fileName in selectedFileNames:
+                #TODO: No duplicates
                 self.openFileDict.update({fileName : open(fileName, "r")}) 
                 listItem = QListWidgetItem()
                 listItem.setToolTip(fileName)
@@ -67,13 +68,26 @@ class Window(QMainWindow):
         # Logic for showing an about dialog content goes here...
         self.centralWidget.setText("<b>Help > About...</b> clicked")
     def openListDoubleClick(self, item):
+        #TODO: no duplicates
         self.currFileW.addItem(QListWidgetItem(item))
         self.currFileW.sortItems()
+    def currListDoubleClick(self, item):
+        if self.documentViewAction.isChecked():
+            self.inputText.setText("TODO: Actual File" + item.toolTip())
+    def toggleTextEditor(self):
+        if self.documentViewAction.isChecked():
+            self.inputText = QTextEdit()
+            self.inputText.setAcceptRichText(False)
+            self.visuals.insertWidget(0, self.inputText, 1)
+        else:
+            self.visuals.removeWidget(self.inputText)
+            self.inputText.deleteLater()
+        
     def _createMenuBar(self):
         menuBar = self.menuBar()
-
-        fileMenu = menuBar.addMenu("&File")
-        openAction = QAction("&Open", self)
+        #File
+        fileMenu = menuBar.addMenu("File")
+        openAction = QAction("&Open Files", self)
         openAction.triggered.connect(self.openFile)
         fileMenu.addAction(openAction)
 
@@ -83,11 +97,11 @@ class Window(QMainWindow):
 
         fileMenu.addSeparator()
 
-        exitAction = QAction("&Exit", self)
+        exitAction = QAction("Exit", self)
         exitAction.triggered.connect(self.close)
         fileMenu.addAction(exitAction)
-
-        editMenu = menuBar.addMenu("&Edit")
+        #Edit TODO Remove
+        editMenu = menuBar.addMenu("Edit")
         copyAction = QAction("&Copy", self)
         copyAction.triggered.connect(self.copyContent)
         editMenu.addAction(copyAction)
@@ -100,11 +114,17 @@ class Window(QMainWindow):
         cutAction.triggered.connect(self.cutContent)
         editMenu.addAction(cutAction)
         editMenu.addSeparator()
-        findMenu = editMenu.addMenu("Find and Replace")
-
-        settingsMenu = menuBar.addMenu("&Settings")
-
-        helpMenu = menuBar.addMenu("&Help")
+        findMenu = editMenu.addMenu("&Find and Replace")
+        #View
+        viewMenu = menuBar.addMenu("View")
+        self.documentViewAction = QAction("&Document View", self)
+        self.documentViewAction.setCheckable(True)
+        self.documentViewAction.toggled.connect(self.toggleTextEditor)
+        viewMenu.addAction(self.documentViewAction)
+        #Settings
+        settingsMenu = menuBar.addMenu("Settings")
+        #Help TODO link webpages
+        helpMenu = menuBar.addMenu("Help")
         helpContentAction = QAction("&Help Content", self)
         helpContentAction.triggered.connect(self.helpContent)
         helpMenu.addAction(helpContentAction)
@@ -117,15 +137,12 @@ class Window(QMainWindow):
 
         workspace = QVBoxLayout()
 
-        visuals = QHBoxLayout()
-        self.inputText = QTextEdit()
-        self.inputText.setAcceptRichText(False)
-        visuals.addWidget(self.inputText, 1)
+        self.visuals = QHBoxLayout()
         self.outputTree = QTreeWidget()
         self.outputTree.setColumnCount(4)
         self.outputTree.setHeaderLabels(["Text", "Tag", "Entry Type", "Entry IOB"])
-        visuals.addWidget(self.outputTree, 1)
-        workspace.addLayout(visuals)
+        self.visuals.addWidget(self.outputTree, 1)
+        workspace.addLayout(self.visuals)
 
         runButton = QPushButton()
         runButton.setText("Run analyzer")
@@ -136,6 +153,7 @@ class Window(QMainWindow):
         self.openFileW = QListWidget()
         self.openFileW.itemDoubleClicked.connect(self.openListDoubleClick)
         self.currFileW = QListWidget()
+        self.currFileW.itemDoubleClicked.connect(self.currListDoubleClick)
         leftBar.addWidget(self.openFileW)
         leftBar.addWidget(self.currFileW)
 
