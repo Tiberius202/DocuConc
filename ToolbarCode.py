@@ -1,6 +1,7 @@
 import sys
 import spacy
 import os
+import re
 
 from PyQt6.QtCore import Qt 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QFileDialog, QWidget
@@ -17,7 +18,12 @@ class Window(QMainWindow):
     #TODO: AXE OR NOT. Button Open File. Uses PyQtMenu
     #def buttOpenFile(self):
     #   fDialog = QFileDialog()
-    #   fDialog.getOpenFileNames() 
+    #   fDialog.getOpenFileNames()
+    def pre_process(txt):
+        txt = re.sub(r'\bits\b', 'it s', txt)
+        txt = re.sub(r'\bIts\b', 'It s', txt)
+        txt = " ".join(txt.split())
+        return(txt) 
 
     def runSpacyModel(self):
         doc = self.nlp(self.inputText.toPlainText())
