@@ -3,31 +3,35 @@ import spacy
 import os
 import re
 
-from PyQt6.QtCore import Qt 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QFileDialog, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget
 from PyQt6.QtGui import QAction
 
-#Begin ds_spacy Imports remember to have spacy 3.3 and pandas 
 from itertools import *
 
 from tkinter import filedialog
 
-class Window(QMainWindow):
-    #TODO: AXE OR NOT. Button Open File. Uses PyQtMenu
-    #def buttOpenFile(self):
-    #   fDialog = QFileDialog()
-    #   fDialog.getOpenFileNames()
-    def pre_process(txt):
+from tmtoolkit.corpus import Corpus, print_summary, tokens_table, vocabulary_counts, vocabulary_size, doc_tokens, corpus_num_tokens, corpus_add_files
+
+def pre_process(txt):
         txt = re.sub(r'\bits\b', 'it s', txt)
         txt = re.sub(r'\bIts\b', 'It s', txt)
         txt = " ".join(txt.split())
         return(txt) 
 
+class Window(QMainWindow):
+    
     def runSpacyModel(self):
-        doc = self.nlp(self.inputText.toPlainText())
-        self.outputTree.clear()
-        for token in doc:
-            QTreeWidgetItem(self.outputTree, [token.text, token.tag_, token.ent_type_, token.ent_iob_] )
+        if self.documentViewAction.isChecked():
+            doc = self.nlp(self.inputText.toPlainText())
+            self.outputTree.clear()
+            for token in doc:
+                QTreeWidgetItem(self.outputTree, [token.text, token.tag_, token.ent_type_, token.ent_iob_] )
+        else:
+            if self.corp is None:
+                self.corp = Corpus.from_files(self.openFilesToBeAdded, spacy_instance=self.nlp, raw_preproc=pre_process, spacy_token_attrs=['tag', 'ent_iob', 'ent_type', 'is_punct'], doc_label_fmt='{basename}')
+            else:
+                self.corp = corpus_add_files(self.corp, self.openFilesToBeAdded, raw_preproc=pre_process, spacy_token_attrs=['tag', 'ent_iob', 'ent_type', 'is_punct'], doc_label_fmt='{basename}')
+        
 
     # Action Functionality Placeholder
     def openFile(self):
@@ -37,10 +41,11 @@ class Window(QMainWindow):
                                                         "*.txt*"),
                                                        ("all files",
                                                         "*.*")))
-        if len(selectedFileNames) > 0:
-            for fileName in selectedFileNames:
-                #TODO: No duplicates
-                self.openFileDict.update({fileName : open(fileName, "r")}) 
+        for fileName in selectedFileNames:
+            if fileName in self.openFileDict:
+                self.openFileDict.update({fileName : open(fileName, "r")})
+            else:
+                self.openFileDict.update({fileName : open(fileName, "r")})
                 listItem = QListWidgetItem()
                 listItem.setToolTip(fileName)
                 listItem.setText(fileName.replace("\\", "/").split("/")[-1])
@@ -75,6 +80,7 @@ class Window(QMainWindow):
         self.centralWidget.setText("<b>Help > About...</b> clicked")
     def openListDoubleClick(self, item):
         #TODO: no duplicates
+        #update visuals
         self.currFileW.addItem(QListWidgetItem(item))
         self.currFileW.sortItems()
     def currListDoubleClick(self, item):
@@ -159,8 +165,10 @@ class Window(QMainWindow):
         leftBar = QVBoxLayout()
         self.openFileW = QListWidget()
         self.openFileW.itemDoubleClicked.connect(self.openListDoubleClick)
+        self.openFileW.setSelectionMode(self.openFileW.SelectionMode.ExtendedSelection)
         self.currFileW = QListWidget()
         self.currFileW.itemDoubleClicked.connect(self.currListDoubleClick)
+        self.currFileW.setSelectionMode(self.currFileW.SelectionMode.ExtendedSelection)
         leftBar.addWidget(self.openFileW)
         leftBar.addWidget(self.currFileW)
 
@@ -182,7 +190,9 @@ class Window(QMainWindow):
         self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "model-new"))
         #Functionality
         self.openFileDict = {}
+        self.openFilesToBeAdded = []
         self.currFileDict = {}
+        self.corp = None
 
 
 if __name__ == "__main__":
