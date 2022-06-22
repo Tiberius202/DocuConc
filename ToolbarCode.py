@@ -48,9 +48,9 @@ class Window(QMainWindow):
 
     # Action Functionality Placeholder
     def openFile(self):
-        selectedFileNames = QFileDialog.getOpenFileName(self, 'Open File', 'C:')
-        # CS magic to unfuck the code goes here
-        for fileName in selectedFileNames:
+        selectedFileNames = QFileDialog.getOpenFileNames(self, 'Open File', filter = "Text files (*.txt);; All Files (*)")
+        #TODO add openFolders
+        for fileName in selectedFileNames[0]:
             if fileName in self.openFileDict:
                 self.openFileDict.update({fileName : open(fileName, "r")})
             else:
