@@ -34,14 +34,14 @@ class Window(QMainWindow):
                         spacy_instance=self.nlp, 
                         raw_preproc=pre_process, 
                         spacy_token_attrs=['tag', 'ent_iob', 'ent_type', 'is_punct'],
-                        doc_label_fmt='{basename}', max_workers=4)
+                        doc_label_fmt='{basename}', max_workers = 1)
                 else:
                     self.corp = corpus_add_files(
                         self.corp,
                         self.openFilesToBeAdded,
                         doc_label_fmt='{basename}')
                 self.openFilesToBeAdded = []
-                print_summary(self.corp) #TODO debugging. Remove
+            print_summary(self.corp) #TODO debugging. Remove
                 #for doc in self.corp.values():
 
         
@@ -50,14 +50,14 @@ class Window(QMainWindow):
     def openFile(self):
         selectedFileNames = QFileDialog.getOpenFileNames(self, 'Open File', filter = "Text files (*.txt);; All Files (*)")
         #TODO add openFolders
-        for fileName in selectedFileNames[0]:
-            if fileName in self.openFileDict:
-                self.openFileDict.update({fileName : open(fileName, "r")})
+        for fname in selectedFileNames[0]:
+            if fname in self.openFileDict:
+                self.openFileDict.update({fname : open(fname, "r")})
             else:
-                self.openFileDict.update({fileName : open(fileName, "r")})
+                self.openFileDict.update({fname : open(fname, "r")})
                 listItem = QListWidgetItem()
-                listItem.setToolTip(fileName)
-                listItem.setText(fileName.replace("\\", "/").split("/")[-1])
+                listItem.setToolTip(fname)
+                listItem.setText(fname.replace("\\", "/").split("/")[-1])
                 self.openFileW.addItem(listItem)
                 self.openFileW.sortItems()
     def saveFile(self):
@@ -88,11 +88,13 @@ class Window(QMainWindow):
         # Logic for showing an about dialog content goes here...
         self.centralWidget.setText("<b>Help > About...</b> clicked")
     def openListDoubleClick(self, item):
-        #TODO: no duplicates
-        self.openFilesToBeAdded.append(item.toolTip())
-        #update visuals
-        self.currFileW.addItem(QListWidgetItem(item))
-        self.currFileW.sortItems()
+        fname = item.toolTip()
+        if  (fname) not in self.currFileDict:
+            self.currFileDict.update({fname : None})
+            self.openFilesToBeAdded.append(fname)
+            #update visuals
+            self.currFileW.addItem(QListWidgetItem(item))
+            self.currFileW.sortItems()
     def currListDoubleClick(self, item):
         if self.documentViewAction.isChecked():
             self.inputText.setText(self.openFileDict[item.toolTip()].read())
