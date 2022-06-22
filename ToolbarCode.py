@@ -27,21 +27,22 @@ class Window(QMainWindow):
             for token in doc:
                 QTreeWidgetItem(self.outputTree, [token.text, token.tag_, token.ent_type_, token.ent_iob_] )
         else:
-            if self.corp is None:
-                self.corp = Corpus.from_files(
-                    self.openFilesToBeAdded,
-                    spacy_instance=self.nlp, 
-                    raw_preproc=pre_process, 
-                    spacy_token_attrs=['tag', 'ent_iob', 'ent_type', 'is_punct'],
-                    doc_label_fmt='{basename}', max_workers=4)
-            else:
-                self.corp = corpus_add_files(
-                    self.corp,
-                    self.openFilesToBeAdded,
-                    doc_label_fmt='{basename}')
-            self.openFilesToBeAdded = []
-            print_summary(self.corp) #TODO debugging. Remove
-            #for doc in self.corp.values():
+            if len(self.openFilesToBeAdded) > 0:
+                if self.corp is None:
+                    self.corp = Corpus.from_files(
+                        self.openFilesToBeAdded,
+                        spacy_instance=self.nlp, 
+                        raw_preproc=pre_process, 
+                        spacy_token_attrs=['tag', 'ent_iob', 'ent_type', 'is_punct'],
+                        doc_label_fmt='{basename}', max_workers=4)
+                else:
+                    self.corp = corpus_add_files(
+                        self.corp,
+                        self.openFilesToBeAdded,
+                        doc_label_fmt='{basename}')
+                self.openFilesToBeAdded = []
+                print_summary(self.corp) #TODO debugging. Remove
+                #for doc in self.corp.values():
 
         
 
