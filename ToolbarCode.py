@@ -3,7 +3,7 @@ import spacy
 import os
 import re
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog
 from PyQt6.QtGui import QAction
 
 from itertools import *
@@ -48,12 +48,8 @@ class Window(QMainWindow):
 
     # Action Functionality Placeholder
     def openFile(self):
-        selectedFileNames = filedialog.askopenfilenames(initialdir = "/",
-                                            title = "Select a File to Open",
-                                            filetypes = (("Text files",
-                                                        "*.txt*"),
-                                                       ("all files",
-                                                        "*.*")))
+        selectedFileNames = QFileDialog.getOpenFileName(self, 'Open File', 'C:')
+        # CS magic to unfuck the code goes here
         for fileName in selectedFileNames:
             if fileName in self.openFileDict:
                 self.openFileDict.update({fileName : open(fileName, "r")})
