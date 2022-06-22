@@ -19,11 +19,10 @@ def pre_process(txt):
         return(txt) 
 
 class Window(QMainWindow):
-    
     def runSpacyModel(self):
         if self.documentViewAction.isChecked():
             doc = self.nlp(self.inputText.toPlainText())
-            self.outputTree.clear()
+            self._oTreeDoc()
             for token in doc:
                 QTreeWidgetItem(self.outputTree, [token.text, token.tag_, token.ent_type_, token.ent_iob_] )
         else:
@@ -41,8 +40,10 @@ class Window(QMainWindow):
                         self.openFilesToBeAdded,
                         doc_label_fmt='{basename}')
                 self.openFilesToBeAdded = []
-            print_summary(self.corp) #TODO debugging. Remove
-                #for doc in self.corp.values():
+                vcab = vocabulary_counts(self.corp)
+                self._oTreeCount()
+                for (word, count) in vcab.items() :
+                    QTreeWidgetItem(self.outputTree, [word, str(count) ] )
 
         
 
@@ -100,13 +101,25 @@ class Window(QMainWindow):
             self.inputText.setText(self.openFileDict[item.toolTip()].read())
     def toggleTextEditor(self):
         if self.documentViewAction.isChecked():
+            self._oTreeDoc()
             self.inputText = QTextEdit()
             self.inputText.setAcceptRichText(False)
             self.inputText.setReadOnly(True)
             self.visuals.insertWidget(0, self.inputText, 1)
         else:
+            self._oTreeCount()
             self.visuals.removeWidget(self.inputText)
             self.inputText.deleteLater()
+
+    def _oTreeCount(self):
+        self.outputTree.setColumnCount(2)
+        self.outputTree.setHeaderLabels(["Word", "Count"])
+        self.outputTree.clear()
+    
+    def _oTreeDoc(self):
+        self.outputTree.setColumnCount(4)
+        self.outputTree.setHeaderLabels(["Text", "Tag", "Entry Type", "Entry IOB"])
+        self.outputTree.clear()
         
     def _createMenuBar(self):
         menuBar = self.menuBar()
@@ -164,8 +177,7 @@ class Window(QMainWindow):
 
         self.visuals = QHBoxLayout()
         self.outputTree = QTreeWidget()
-        self.outputTree.setColumnCount(4)
-        self.outputTree.setHeaderLabels(["Text", "Tag", "Entry Type", "Entry IOB"])
+        self._oTreeCount()
         self.visuals.addWidget(self.outputTree, 1)
         workspace.addLayout(self.visuals)
 
