@@ -5,18 +5,62 @@ import re
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog
 from PyQt6.QtGui import QAction
-
 from itertools import *
-
+import numpy as np
+from collections import Counter
 from tkinter import filedialog
-
 from tmtoolkit.corpus import Corpus, print_summary, tokens_table, vocabulary_counts, vocabulary_size, doc_tokens, corpus_num_tokens, corpus_add_files
+import string
 
 def pre_process(txt):
         txt = re.sub(r'\bits\b', 'it s', txt)
         txt = re.sub(r'\bIts\b', 'It s', txt)
         txt = " ".join(txt.split())
         return(txt) 
+def itemgetter(x):
+    return lambda t : t[x]
+def convert_totuple(tok):
+    token_tuple = []
+    for i in range(0,len(tok)):
+        token_list = [x.lower() for x in list(tok.values())[i]['token']]
+        iob_list = list(tok.values())[i]['ent_iob']
+        iob_list = [x.replace('IS_DIGIT','B') for x in iob_list]
+        iob_list = [x.replace('IS_ALPHA','I') for x in iob_list]
+        iob_list = [x.replace('IS_ASCII','O') for x in iob_list]
+        ent_list = list(tok.values())[i]['ent_type']
+        iob_ent = list(map('-'.join, zip(iob_list, ent_list)))
+        token_tuple.append(list(zip(token_list, list(tok.values())[i]['tag'], iob_ent)))
+    return(token_tuple)
+def count_tokens(tok, non_punct):
+    token_list = []
+    p = re.compile('^[a-z]+$')
+    for i in range(0,len(tok)):
+        tokens = [x[0] for x in tok[i]]
+        # strip punctuation
+        tokens = [x.translate(str.maketrans('', '', string.punctuation)) for x in tokens]
+        # return only alphabetic strings
+        tokens = [x for x in tokens if p.match(x)]
+        token_list.append(tokens)
+    token_range = []
+    for i in range(0,len(tok)):
+        token_range.append(list(set(token_list[i])))
+    token_range = [x for xs in token_range for x in xs]
+    token_range = Counter(token_range)
+    token_range = sorted(token_range.items(), key=lambda pair: pair[0], reverse=False)
+    token_list = [x for xs in token_list for x in xs]
+    token_list = Counter(token_list)
+    token_list = sorted(token_list.items(), key=lambda pair: pair[0], reverse=False)
+    tokens = np.array([x[0] for x in token_list])
+    token_freq = np.array([x[1] for x in token_list])
+    total_tokens = sum(token_freq)
+    # Note: using non_punct for normalization
+    token_prop = np.array(token_freq)/non_punct*1000000
+    token_prop = token_prop.round(decimals=2)
+    token_range = np.array([x[1] for x in token_range])/len(tok)*100
+    token_range = token_range.round(decimals=2)
+    token_counts = list(zip(tokens.tolist(), token_freq.tolist(), token_prop.tolist(), token_range.tolist()))
+    token_counts = list(token_counts)
+    return(token_counts)
 
 class Window(QMainWindow):
     def runSpacyModel(self):
@@ -34,18 +78,29 @@ class Window(QMainWindow):
                         raw_preproc=pre_process, 
                         spacy_token_attrs=['tag', 'ent_iob', 'ent_type', 'is_punct'],
                         doc_label_fmt='{basename}', max_workers = 1)
+                    
                 else:
                     self.corp = corpus_add_files(
                         self.corp,
                         self.openFilesToBeAdded,
                         doc_label_fmt='{basename}')
                 self.openFilesToBeAdded = []
-                vcab = vocabulary_counts(self.corp)
+                #Corpus processing
+                corpus_total = corpus_num_tokens(self.corp)
+                corpus_types = vocabulary_size(self.corp)
+                total_punct = 0
+                for doc in self.corp:
+                    total_punct += sum(self.corp[doc]['is_punct'])
+                non_punct = corpus_total - total_punct
+                docs = doc_tokens(self.corp, with_attr=True)
+                tp = convert_totuple(docs)
+                token_counts = count_tokens(tp, non_punct)
+                #TODO: display these
+                sortedTokens = sorted(token_counts, key=itemgetter(1), reverse=True)
+                #visuals
                 self._oTreeCount()
-                for (word, count) in vcab.items() :
-                    QTreeWidgetItem(self.outputTree, [word, str(count) ] )
-
-        
+                for (word, count, prop, range) in sortedTokens :
+                    QTreeWidgetItem(self.outputTree, [word, str(count)] )
 
     # Action Functionality Placeholder
     def openFile(self):
@@ -113,7 +168,7 @@ class Window(QMainWindow):
 
     def _oTreeCount(self):
         self.outputTree.setColumnCount(2)
-        self.outputTree.setHeaderLabels(["Word", "Count"])
+        self.outputTree.setHeaderLabels(["Word", "Count", "Prop", "Range"])
         self.outputTree.clear()
     
     def _oTreeDoc(self):
