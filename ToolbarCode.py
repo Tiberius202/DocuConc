@@ -9,7 +9,7 @@ from itertools import *
 import numpy as np
 from collections import Counter
 from tkinter import filedialog
-from tmtoolkit.corpus import Corpus, print_summary, tokens_table, vocabulary_counts, vocabulary_size, doc_tokens, corpus_num_tokens, corpus_add_files
+from tmtoolkit.corpus import Corpus, vocabulary_size, doc_tokens, corpus_num_tokens, corpus_add_files
 import string
 
 def pre_process(txt):
@@ -348,6 +348,7 @@ class Window(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setStyle('Fusion')
     win = Window()
     win.show()
     sys.exit(app.exec())
