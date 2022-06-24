@@ -271,13 +271,22 @@ class Window(QMainWindow):
         self.documentViewAction.setCheckable(True)
         self.documentViewAction.toggled.connect(self.toggleTextEditor)
         viewMenu.addAction(self.documentViewAction)
-        self.outputFormat = QActionGroup(self)
-        #todo: text
-        self.outputFormat.setExclusionPolicy(QActionGroup.ExclusionPolicy.Exclusive)
+        viewMenu.addSection("Output Format")
+        self.outputFormat = QActionGroup(viewMenu)
         wordlistAction = QAction("Word List", self)
-        #todo: connect
+        partOfSpeech = QAction("Part of Speech", self)
+        docuscope = QAction("Docuscope Tags", self)
+        wordlistAction.setCheckable(True)
+        partOfSpeech.setCheckable(True)
+        docuscope.setCheckable(True)
         self.outputFormat.addAction(wordlistAction)
-        viewMenu.addAction(self.outputFormat)
+        self.outputFormat.addAction(partOfSpeech)
+        self.outputFormat.addAction(docuscope)
+        wordlistAction.setChecked(True)
+        self.outputFormat.setExclusive(True)
+        viewMenu.addAction(wordlistAction)
+        viewMenu.addAction(partOfSpeech)
+        viewMenu.addAction(docuscope)
         #Settings
         settingsMenu = menuBar.addMenu("Settings")
         #Help TODO link webpages
