@@ -1,3 +1,4 @@
+from logging import exception
 import sys
 import spacy
 import os
@@ -137,27 +138,40 @@ class Window(QMainWindow):
                         doc_label_fmt='{basename}', max_workers = 1)
                     
                 else:
-                    self.corp = corpus_add_files(
+                    corpus_add_files(
                         self.corp,
                         self.openFilesToBeAdded,
                         doc_label_fmt='{basename}')
                 self.openFilesToBeAdded = []
-                #Corpus processing
-                corpus_total = corpus_num_tokens(self.corp)
-                corpus_types = vocabulary_size(self.corp)
-                total_punct = 0
-                for doc in self.corp:
-                    total_punct += sum(self.corp[doc]['is_punct'])
-                non_punct = corpus_total - total_punct
-                docs = doc_tokens(self.corp, with_attr=True)
-                tp = convert_totuple(docs)
+            #Corpus processing
+            corpus_total = corpus_num_tokens(self.corp)
+            corpus_types = vocabulary_size(self.corp)
+            total_punct = 0
+            for doc in self.corp:
+                total_punct += sum(self.corp[doc]['is_punct'])
+            non_punct = corpus_total - total_punct
+            #TODO: display these
+            docs = doc_tokens(self.corp, with_attr=True)
+            tp = convert_totuple(docs)
+            #TODO: Compares strings. Consider enum
+            outputFormat = self.outputFormat.checkedAction().text()
+            if   outputFormat == "Word List":
                 token_counts = count_tokens(tp, non_punct)
-                #TODO: display these
                 sortedTokens = sorted(token_counts, key=itemgetter(1), reverse=True)
-                #visuals
-                self._oTreeCount()
-                for (word, count, prop, range) in sortedTokens :
-                    QTreeWidgetItem(self.outputTree, [word, str(count)] )
+                self._oWordList()
+            elif outputFormat == "Part of Speech":
+                pos_counts = count_tags(tp, non_punct)
+                sortedTokens = sorted(pos_counts, key=itemgetter(1), reverse=True)
+                self._oPartOfSpeech()
+            elif outputFormat == "Docuscope Tags":
+                ds_counts = count_ds(tp, non_punct)
+                sortedTokens = sorted(ds_counts, key=itemgetter(1), reverse=True)
+                self._oDocuscopeTags()
+            else:
+                raise Exception("Unknown format. Should be impossible")
+            #visuals
+            for (word, count, prop, range) in sortedTokens :
+                QTreeWidgetItem(self.outputTree, [word, str(count)] )
 
     # Action Functionality Placeholder
     def openFile(self):
@@ -172,7 +186,12 @@ class Window(QMainWindow):
                 listItem.setToolTip(fname)
                 listItem.setText(fname.replace("\\", "/").split("/")[-1])
                 self.openFileW.addItem(listItem)
-                self.openFileW.sortItems()
+                #TODO: Make adding to current default but possibly add toggle
+                self.currFileDict.update({fname : None})
+                self.openFilesToBeAdded.append(fname)
+                self.currFileW.addItem(QListWidgetItem(listItem))
+        self.openFileW.sortItems()
+        self.currFileW.sortItems()
     def saveFile(self):
         selectedFileNames = filedialog.askopenfilename(initialdir = "/",
                                             title = "Select a File",
@@ -219,18 +238,29 @@ class Window(QMainWindow):
             self.inputText.setReadOnly(True)
             self.visuals.insertWidget(0, self.inputText, 1)
         else:
-            self._oTreeCount()
+            self._oWordList()
             self.visuals.removeWidget(self.inputText)
             self.inputText.deleteLater()
 
-    def _oTreeCount(self):
-        self.outputTree.setColumnCount(2)
+    def _oWordList(self):
+        self.outputTree.setColumnCount(4)
         self.outputTree.setHeaderLabels(["Word", "Count", "Prop", "Range"])
+        self.outputTree.clear()
+
+    def _oPartOfSpeech(self):
+        self.outputTree.setColumnCount(4)
+        self.outputTree.setHeaderLabels(["POS Tag", "Count", "Prop", "Range"])
+        self.outputTree.clear()
+
+    def _oDocuscopeTags(self):
+        self.outputTree.setColumnCount(4)
+        self.outputTree.setHeaderLabels(["Docuscope Tag", "Count", "Prop", "Range"])
         self.outputTree.clear()
     
     def _oTreeDoc(self):
         self.outputTree.setColumnCount(4)
         self.outputTree.setHeaderLabels(["Text", "Tag", "Entry Type", "Entry IOB"])
+        self.outputTree.setColumnWidth(1, 100)
         self.outputTree.clear()
         
     def _createMenuBar(self):
@@ -305,7 +335,7 @@ class Window(QMainWindow):
 
         self.visuals = QHBoxLayout()
         self.outputTree = QTreeWidget()
-        self._oTreeCount()
+        self._oWordList()
         self.visuals.addWidget(self.outputTree, 1)
         workspace.addLayout(self.visuals)
 
