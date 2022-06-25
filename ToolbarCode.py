@@ -4,7 +4,7 @@ import spacy
 import os
 import re
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar
 from PyQt6.QtGui import QAction, QActionGroup
 from itertools import *
 import numpy as np
@@ -204,6 +204,10 @@ class Window(QMainWindow):
             f.write("""TODO:Put the shit that we have open later in this place so we can save it""")
     def close(self):
         print("TODO: most likely replace with close all")
+    def add(self):
+        print("TODO")
+    def remove(self):
+        print("TODO")
     def copyContent(self):
         # TODO: ALL of these are broken Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
@@ -351,7 +355,23 @@ class Window(QMainWindow):
         self.currFileW = QListWidget()
         self.currFileW.itemDoubleClicked.connect(self.currListDoubleClick)
         self.currFileW.setSelectionMode(self.currFileW.SelectionMode.ExtendedSelection)
+        openButton = QPushButton()
+        openButton.setText("Open")
+        openButton.clicked.connect(self.openFile)
+        closeButton = QPushButton()
+        closeButton.setText("Close")
+        closeButton.clicked.connect(self.close)
+        leftBar.addWidget(openButton)
+        leftBar.addWidget(closeButton)
         leftBar.addWidget(self.openFileW)
+        addButton = QPushButton()
+        addButton.setText("Add")
+        addButton.clicked.connect(self.add)
+        removeButton = QPushButton()
+        removeButton.setText("Remove")
+        removeButton.clicked.connect(self.remove)
+        leftBar.addWidget(addButton)
+        leftBar.addWidget(removeButton)
         leftBar.addWidget(self.currFileW)
 
         mainView.addLayout(leftBar, 1)
