@@ -10,7 +10,6 @@ from PyQt6.QtGui import QAction, QActionGroup
 from itertools import *
 from tkinter import filedialog
 from tmtoolkit.corpus import Corpus, vocabulary_size, doc_tokens, corpus_num_tokens, corpus_add_files
-import string
 
 #Lambda to be used in Corpus.from_Files
 def pre_process(txt):
