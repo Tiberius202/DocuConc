@@ -217,7 +217,6 @@ class Window(QMainWindow):
     def _oTreeDoc(self):
         self.outputTree.setColumnCount(4)
         self.outputTree.setHeaderLabels(["Text", "Tag", "Entry Type", "Entry IOB"])
-        self.outputTree.setColumnWidth(1, 100)
         self.outputTree.clear()
         
     def _createMenuBar(self):
@@ -292,6 +291,7 @@ class Window(QMainWindow):
 
         self.visuals = QHBoxLayout()
         self.outputTree = QTreeWidget()
+        self.outputTree.setColumnWidth(0, 200)
         self._oWordList()
         self.visuals.addWidget(self.outputTree, 1)
         workspace.addLayout(self.visuals)

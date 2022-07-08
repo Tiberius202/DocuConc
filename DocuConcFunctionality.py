@@ -2,6 +2,8 @@ import re
 import string
 from collections import Counter
 import numpy as np
+import pandas as pd
+from itertools import groupby
 
 #TODO, remove. Purely for testing
 import os
@@ -124,10 +126,11 @@ def count_ds(tok, non_punct):
     return(ds_counts)
 
 def merge_ds(tok, cluster):
+    # Possible optimization by removing panda
     phrase_list = []
     for t in tok:
         df = [x for x in t if x[2].endswith(cluster)]
-        #df = pd.DataFrame(df, columns=['token', 'ds_cat'])
+        df = pd.DataFrame(df, columns=['token', 'ds_cat'])
         indices = df.loc[df['ds_cat'].str.contains('B-')].index.tolist()
         rows_ = dict.fromkeys(df.columns.tolist(),'')
         df = pd.DataFrame(np.insert(df.values, [x for x in indices[1:]],
@@ -142,6 +145,7 @@ def merge_ds(tok, cluster):
                 .reindex(df.columns, axis=1))
         ds_tokens = df['token'].tolist()
         phrase_list.append(ds_tokens)
+    #End
     phrase_range = []
     for i in range(0,len(tok)):
         phrase_range.append(list(set(phrase_list[i])))
@@ -165,10 +169,11 @@ def merge_ds(tok, cluster):
 
 def groupby_consecutive(lst):
     for _, g in groupby(enumerate(lst), lambda x: x[0] - x[1]):
-        yield list(map(itemgetter(1), g))
+        yield list(map(lambda x : x[1], g))
 
 def merge_tags(tok, tags):
     phrase_list = []
+    #Possible optimization by removing panda
     for i in range(0,len(tok)):
         df = [x for x in tok[i] if x[1].startswith(tags)]
         df = pd.DataFrame(df, columns=['token', 'tag', 'ds_cat'])
@@ -202,6 +207,7 @@ def merge_tags(tok, tags):
                 .reindex(df.columns, axis=1))
         ds_tokens = df['token'].tolist()
         phrase_list.append(ds_tokens)
+    #End
     phrase_range = []
     for i in range(0,len(tok)):
         phrase_range.append(list(set(phrase_list[i])))
@@ -213,6 +219,7 @@ def merge_tags(tok, tags):
     phrase_list = sorted(phrase_list.items(), key=lambda pair: pair[0], reverse=False)
     phrases = np.array([x[0] for x in phrase_list])
     phrase_freq = np.array([x[1] for x in phrase_list])
+    #todo: remove dead code
     total_phrases = sum(phrase_freq)
     # Note: using non_punct for normalization
     phrase_prop = np.array(phrase_freq)/corpus_total*1000000
