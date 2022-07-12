@@ -21,7 +21,7 @@ def update(self, new_docs: Union[Dict[str, Union[str, Doc, Document]], Sequence[
 
     new_docs_text = {}
     for lbl, d in new_docs.items():
-        textOutput("working on " + lbl)
+        textOutput("Loading " + lbl)
         if isinstance(d, str):
             new_docs_text[lbl] = d
         else:
@@ -35,11 +35,10 @@ def update(self, new_docs: Union[Dict[str, Union[str, Doc, Document]], Sequence[
 
     if new_docs_text:
         self._init_docs(new_docs_text)
-    textOutput("bimap")
+    textOutput("Updating bimap")
     self._update_bimaps(new_docs.keys())
-    textOutput("workers")
+    textOutput("Updating workers")
     self._update_workers_docs()
-    textOutput("done")
 
 def _nlppipe(self, docs):
     """
@@ -47,12 +46,14 @@ def _nlppipe(self, docs):
     """
     if self.max_workers > 1:   # pipeline for parallel processing
         logger.debug(f'using parallel processing NLP pipeline with {self.max_workers} workers')
+        textOutput(f'using parallel processing NLP pipeline with {self.max_workers} workers')
         return self.nlp.pipe(docs, n_process=self.max_workers)
     else:   # serial processing
         logger.debug('using serial processing NLP pipeline')
+        total = str(len(docs))
         ret : Iterator[Doc] = []
         for txt in docs:
-            textOutput(str(len(ret)))
+            textOutput("Running NLP Pipeline on document " + str(len(ret)) + " of " + total)
             ret.append(self.nlp(txt))
         return ret
 

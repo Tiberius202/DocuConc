@@ -37,43 +37,47 @@ class Window(QMainWindow):
                         raw_preproc=pre_process, 
                         spacy_token_attrs=['tag', 'ent_iob', 'ent_type', 'is_punct'],
                         doc_label_fmt='{basename}', max_workers = 1)
-                    
                 else:
                     corpus_add_files(
                         self.corp,
                         self.openFilesToBeAdded,
                         doc_label_fmt='{basename}')
+                self.runProgress.setText("Post processing corpus")
+                QApplication.processEvents()
                 self.openFilesToBeAdded = []
-            #TODO: mepty corpus
-            #Corpus processing
-            corpus_total = corpus_num_tokens(self.corp)
-            corpus_types = vocabulary_size(self.corp)
-            total_punct = 0
-            for doc in self.corp:
-                total_punct += sum(self.corp[doc]['is_punct'])
-            non_punct = corpus_total - total_punct
-            #TODO: display these
-            docs = doc_tokens(self.corp, with_attr=True)
-            tp = DocuConcFunctionality.convert_totuple(docs)
-            #TODO: Compares strings. Consider enum
-            outputFormat = self.outputFormat.checkedAction().text()
-            if   outputFormat == "Word List":
-                token_counts = DocuConcFunctionality.count_tokens(tp, non_punct)
-                sortedTokens = sorted(token_counts, key= lambda x : x[1], reverse=True)
-                self._oWordList()
-            elif outputFormat == "Part of Speech":
-                pos_counts = DocuConcFunctionality.count_tags(tp, non_punct)
-                sortedTokens = sorted(pos_counts  , key= lambda x : x[1], reverse=True)
-                self._oPartOfSpeech()
-            elif outputFormat == "Docuscope Tags":
-                ds_counts = DocuConcFunctionality.count_ds(tp, non_punct)
-                sortedTokens = sorted(ds_counts   , key= lambda x : x[1], reverse=True)
-                self._oDocuscopeTags()
-            else:
-                raise Exception("Unknown format. Should be impossible")
-            #visuals
-            for (word, count, prop, range) in sortedTokens :
-                QTreeWidgetItem(self.outputTree, [word, str(count), str(prop), str(range)])
+                corpus_total = corpus_num_tokens(self.corp)
+                corpus_types = vocabulary_size(self.corp)
+                total_punct = 0
+                for doc in self.corp:
+                    total_punct += sum(self.corp[doc]['is_punct'])
+                non_punct = corpus_total - total_punct
+                #TODO: display these
+                docs = doc_tokens(self.corp, with_attr=True)
+                tp = DocuConcFunctionality.convert_totuple(docs)
+                #TODO: Compares strings. Consider enum
+                outputFormat = self.outputFormat.checkedAction().text()
+                self.runProgress.setText("Sorting tokens and building table")
+                QApplication.processEvents()
+                if   outputFormat == "Word List":
+                    token_counts = DocuConcFunctionality.count_tokens(tp, non_punct)
+                    sortedTokens = sorted(token_counts, key= lambda x : x[1], reverse=True)
+                    self._oWordList()
+                elif outputFormat == "Part of Speech":
+                    pos_counts = DocuConcFunctionality.count_tags(tp, non_punct)
+                    sortedTokens = sorted(pos_counts  , key= lambda x : x[1], reverse=True)
+                    self._oPartOfSpeech()
+                elif outputFormat == "Docuscope Tags":
+                    ds_counts = DocuConcFunctionality.count_ds(tp, non_punct)
+                    sortedTokens = sorted(ds_counts   , key= lambda x : x[1], reverse=True)
+                    self._oDocuscopeTags()
+                else:
+                    raise Exception("Unknown format. Should be impossible")
+                #visuals
+                self.runProgress.setText("Displaying output")
+                QApplication.processEvents()
+                for (word, count, prop, range) in sortedTokens :
+                    QTreeWidgetItem(self.outputTree, [word, str(count), str(prop), str(range)])
+                self.runProgress.setText("Done")
 
     # Action Functionality Placeholder
     def openFile(self):
@@ -250,9 +254,12 @@ class Window(QMainWindow):
         runButton.clicked.connect(self.runSpacyModel)
         workspace.addWidget(runButton)
 
-        runProgress = QLabel("Nothing Running")
-        corpusLibOverwrites.textOutput = lambda s : runProgress.setText(s)
-        workspace.addWidget(runProgress, alignment=Qt.AlignmentFlag.AlignRight)
+        self.runProgress = QLabel("Nothing Running")
+        def newTextOutput(s : str):
+            self.runProgress.setText(s)
+            QApplication.processEvents()
+        corpusLibOverwrites.textOutput = newTextOutput
+        workspace.addWidget(self.runProgress, alignment=Qt.AlignmentFlag.AlignRight)
 
         leftBar = QVBoxLayout()
         self.openFileW = QListWidget()
