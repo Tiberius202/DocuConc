@@ -7,6 +7,9 @@ from spacy.tokens import Doc
 from tmtoolkit.corpus._document import Document
 import logging
 
+def textOutput(s : str):
+    pass
+
 #copied from tmtoolkit.corpus._corpus.py
 logger = logging.getLogger('tmtoolkit')
 #used to overwrite tmtoolkit.corpus._corpus.py to add progressbar
@@ -18,7 +21,7 @@ def update(self, new_docs: Union[Dict[str, Union[str, Doc, Document]], Sequence[
 
     new_docs_text = {}
     for lbl, d in new_docs.items():
-        print("working on " + lbl)
+        textOutput("working on " + lbl)
         if isinstance(d, str):
             new_docs_text[lbl] = d
         else:
@@ -32,11 +35,11 @@ def update(self, new_docs: Union[Dict[str, Union[str, Doc, Document]], Sequence[
 
     if new_docs_text:
         self._init_docs(new_docs_text)
-    print("bimap")
+    textOutput("bimap")
     self._update_bimaps(new_docs.keys())
-    print("workers")
+    textOutput("workers")
     self._update_workers_docs()
-    print("done")
+    textOutput("done")
 
 def _nlppipe(self, docs):
     """
@@ -49,7 +52,7 @@ def _nlppipe(self, docs):
         logger.debug('using serial processing NLP pipeline')
         ret : Iterator[Doc] = []
         for txt in docs:
-            print(len(ret))
+            textOutput(str(len(ret)))
             ret.append(self.nlp(txt))
         return ret
 

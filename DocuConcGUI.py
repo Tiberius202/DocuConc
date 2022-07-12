@@ -5,8 +5,9 @@ import os
 import re
 import DocuConcFunctionality
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar
 from PyQt6.QtGui import QAction, QActionGroup
+from PyQt6.QtCore import Qt
 from itertools import *
 from tkinter import filedialog
 
@@ -43,6 +44,7 @@ class Window(QMainWindow):
                         self.openFilesToBeAdded,
                         doc_label_fmt='{basename}')
                 self.openFilesToBeAdded = []
+            #TODO: mepty corpus
             #Corpus processing
             corpus_total = corpus_num_tokens(self.corp)
             corpus_types = vocabulary_size(self.corp)
@@ -247,6 +249,10 @@ class Window(QMainWindow):
         runButton.setText("Run analyzer")
         runButton.clicked.connect(self.runSpacyModel)
         workspace.addWidget(runButton)
+
+        runProgress = QLabel("Nothing Running")
+        corpusLibOverwrites.textOutput = lambda s : runProgress.setText(s)
+        workspace.addWidget(runProgress, alignment=Qt.AlignmentFlag.AlignRight)
 
         leftBar = QVBoxLayout()
         self.openFileW = QListWidget()
