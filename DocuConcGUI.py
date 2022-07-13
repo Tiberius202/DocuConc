@@ -3,7 +3,8 @@ import sys
 import spacy
 import os
 import re
-import DocuConcFunctionality
+import docuscospacy.corpus_analysis as scoA
+import docuscospacy.corpus_utils as scoU
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar
 from PyQt6.QtGui import QAction, QActionGroup
@@ -53,21 +54,21 @@ class Window(QMainWindow):
                 non_punct = corpus_total - total_punct
                 #TODO: display these
                 docs = doc_tokens(self.corp, with_attr=True)
-                tp = DocuConcFunctionality.convert_totuple(docs)
+                tp = scoU._convert_totuple(docs)
                 #TODO: Compares strings. Consider enum
                 outputFormat = self.outputFormat.checkedAction().text()
                 self.runProgress.setText("Sorting tokens and building table")
                 QApplication.processEvents()
                 if   outputFormat == "Word List":
-                    token_counts = DocuConcFunctionality.count_tokens(tp, non_punct)
+                    token_counts = scoU._count_tokens(tp, non_punct)
                     sortedTokens = sorted(token_counts, key= lambda x : x[1], reverse=True)
                     self._oWordList()
                 elif outputFormat == "Part of Speech":
-                    pos_counts = DocuConcFunctionality.count_tags(tp, non_punct)
+                    pos_counts = scoU._count_tags(tp, non_punct)
                     sortedTokens = sorted(pos_counts  , key= lambda x : x[1], reverse=True)
                     self._oPartOfSpeech()
                 elif outputFormat == "Docuscope Tags":
-                    ds_counts = DocuConcFunctionality.count_ds(tp, non_punct)
+                    ds_counts = scoU._count_ds(tp, non_punct)
                     sortedTokens = sorted(ds_counts   , key= lambda x : x[1], reverse=True)
                     self._oDocuscopeTags()
                 else:

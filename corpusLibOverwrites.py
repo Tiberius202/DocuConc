@@ -7,6 +7,7 @@ from spacy.tokens import Doc
 from tmtoolkit.corpus._document import Document
 import logging
 
+#To be overwritten to allow for output of progress
 def textOutput(s : str):
     pass
 
