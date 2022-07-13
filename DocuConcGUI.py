@@ -94,11 +94,11 @@ class Window(QMainWindow):
                 listItem.setText(fname.replace("\\", "/").split("/")[-1])
                 self.openFileW.addItem(listItem)
                 #TODO: Make adding to current default but possibly add toggle
-                self.currFileDict.update({fname : None})
-                self.openFilesToBeAdded.append(fname)
-                self.currFileW.addItem(QListWidgetItem(listItem))
+                #self.currFileDict.update({fname : None})
+                #self.openFilesToBeAdded.append(fname)
+                #self.currFileW.addItem(QListWidgetItem(listItem))
+                #self.currFileW.sortItems()
         self.openFileW.sortItems()
-        self.currFileW.sortItems()
     def saveFile(self):
         selectedFileNames = filedialog.askopenfilename(initialdir = "/",
                                             title = "Select a File",
@@ -262,6 +262,7 @@ class Window(QMainWindow):
         corpusLibOverwrites.textOutput = newTextOutput
         workspace.addWidget(self.runProgress, alignment=Qt.AlignmentFlag.AlignRight)
 
+        #Used for managing files
         leftBar = QVBoxLayout()
         self.openFileW = QListWidget()
         self.openFileW.itemDoubleClicked.connect(self.openListDoubleClick)
