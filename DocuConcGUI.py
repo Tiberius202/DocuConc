@@ -112,9 +112,24 @@ class Window(QMainWindow):
     def close(self):
         print("TODO: most likely replace with close all")
     def add(self):
-        print("TODO")
+        fnames = self.openFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            if  (fname) not in self.currFileDict:
+                self.currFileDict.update({fname : None})
+                self.openFilesToBeAdded.append(fname)
+                #update visuals
+                self.currFileW.addItem(fname)
+                self.currFileW.sortItems()
     def remove(self):
-        print("TODO")
+        fnames = self.currFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            # fname = item.toolTip()
+            # del self.currFileDict[fname]
+            #update visuals
+            self.currFileW.takeItem(self.currFileW.row(item))
     def copyContent(self):
         # TODO: ALL of these are broken Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
