@@ -3,6 +3,7 @@ import sys
 import spacy
 import os
 import re
+import enum
 import docuscospacy.corpus_analysis as scoA
 import docuscospacy.corpus_utils as scoU
 
@@ -21,6 +22,22 @@ def pre_process(txt):
         txt = re.sub(r'\bIts\b', 'It s', txt)
         txt = " ".join(txt.split())
         return(txt)
+
+class ViewMode(enum.Enum):
+    #Count of token frequencies
+    freqTable = 1
+    #Count of tags frequencies
+    tagsTable = 2
+    #Document-term matrix of raw tag counts
+    tagsDTM = 3
+    #Table of NGRAM frequencies
+    NGramTable = 4
+    #a table of collocations by association measure
+    collacTable = 5
+    #a KWIC table with the node word in the center column
+    KWICCenter = 6
+    #A keyness table comparing token frequencies from a taget and a reference corpus
+    keyNessTable = 7
 
 class Window(QMainWindow):
     def runSpacyModel(self):
@@ -228,9 +245,10 @@ class Window(QMainWindow):
         viewMenu.addAction(self.documentViewAction)
         viewMenu.addSection("Output Format")
         self.outputFormat = QActionGroup(viewMenu)
-        wordlistAction = QAction("Word List", self)
-        partOfSpeech = QAction("Part of Speech", self)
-        docuscope = QAction("Docuscope Tags", self)
+        tokAction = QAction("Token Frequency Table", self)
+        tagAction = QAction("Tag Frequency Table", self)
+        dtmAction = QAction("Document Term Matrix of tag counts", self)
+        
         wordlistAction.setCheckable(True)
         partOfSpeech.setCheckable(True)
         docuscope.setCheckable(True)
@@ -329,6 +347,7 @@ class Window(QMainWindow):
         self.openFilesToBeAdded = []
         self.currFileDict = {}
         self.corp = None
+        self.viewMode = 1
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
