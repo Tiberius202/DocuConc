@@ -111,11 +111,11 @@ class Window(QMainWindow):
                 listItem.setText(fname.replace("\\", "/").split("/")[-1])
                 self.openFileW.addItem(listItem)
                 #TODO: Make adding to current default but possibly add toggle
-                self.currFileDict.update({fname : None})
-                self.openFilesToBeAdded.append(fname)
-                self.currFileW.addItem(QListWidgetItem(listItem))
+                #self.currFileDict.update({fname : None})
+                #self.openFilesToBeAdded.append(fname)
+                #self.currFileW.addItem(QListWidgetItem(listItem))
+                #self.currFileW.sortItems()
         self.openFileW.sortItems()
-        self.currFileW.sortItems()
     def saveFile(self):
         selectedFileNames = filedialog.askopenfilename(initialdir = "/",
                                             title = "Select a File",
@@ -129,9 +129,24 @@ class Window(QMainWindow):
     def close(self):
         print("TODO: most likely replace with close all")
     def add(self):
-        print("TODO")
+        fnames = self.openFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            if  (fname) not in self.currFileDict:
+                self.currFileDict.update({fname : None})
+                self.openFilesToBeAdded.append(fname)
+                #update visuals
+                self.currFileW.addItem(fname)
+                self.currFileW.sortItems()
     def remove(self):
-        print("TODO")
+        fnames = self.currFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            # fname = item.toolTip()
+            # del self.currFileDict[fname]
+            #update visuals
+            self.currFileW.takeItem(self.currFileW.row(item))
     def copyContent(self):
         # TODO: ALL of these are broken Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
@@ -280,6 +295,7 @@ class Window(QMainWindow):
         corpusLibOverwrites.textOutput = newTextOutput
         workspace.addWidget(self.runProgress, alignment=Qt.AlignmentFlag.AlignRight)
 
+        #Used for managing files
         leftBar = QVBoxLayout()
         self.openFileW = QListWidget()
         self.openFileW.itemDoubleClicked.connect(self.openListDoubleClick)
