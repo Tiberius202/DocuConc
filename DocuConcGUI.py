@@ -120,14 +120,14 @@ class Window(QMainWindow):
                 self.currFileDict.update({fname : None})
                 self.openFilesToBeAdded.append(fname)
                 #update visuals
-                self.currFileW.addItem(fname)
+                self.currFileW.addItem(QListWidgetItem(item))
                 self.currFileW.sortItems()
     def remove(self):
         fnames = self.currFileW.selectedItems()
         if not fnames: return
         for item in fnames:
-            # fname = item.toolTip()
-            # del self.currFileDict[fname]
+            fname = item.toolTip()
+            del self.currFileDict[fname]
             #update visuals
             self.currFileW.takeItem(self.currFileW.row(item))
     def copyContent(self):
