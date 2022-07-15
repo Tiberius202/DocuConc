@@ -6,6 +6,8 @@ import re
 import enum
 import docuscospacy.corpus_analysis as scoA
 import docuscospacy.corpus_utils as scoU
+#Output of docuscospacy calls
+import pandas
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar
 from PyQt6.QtGui import QAction, QActionGroup
@@ -23,6 +25,7 @@ def pre_process(txt):
         txt = " ".join(txt.split())
         return(txt)
 
+@enum.unique
 class ViewMode(enum.Enum):
     #Count of token frequencies
     freqTable = 0
@@ -47,7 +50,13 @@ class Window(QMainWindow):
         """
         #Begin Corpus Processing
         if self.documentViewAction.isChecked():
-            self.corp = self.nlp(pre_process(self.inputText.toPlainText())) 
+            if not (self.docViewFile is None):
+                self.corp = self.corp = Corpus.from_files(
+                            [self.docViewFile],
+                            spacy_instance=self.nlp, 
+                            raw_preproc=pre_process, 
+                            spacy_token_attrs=['tag', 'ent_iob', 'ent_type', 'is_punct'],
+                            doc_label_fmt='{basename}', max_workers = 1)
         else:
             if len(self.openFilesToBeAdded) > 0:
                 if self.corp is None:
@@ -63,40 +72,23 @@ class Window(QMainWindow):
                         self.openFilesToBeAdded,
                         doc_label_fmt='{basename}')
                 self.openFilesToBeAdded = []
-        self.runProgress.setText("Post processing corpus")
+        self.runProgress.setText("Calculating Sums for Corpus")
         QApplication.processEvents()
         #Calculate total number of tokens to normalize and display
-        corpus_total = corpus_num_tokens(self.corp)
-        total_punct = 0
-        for doc in self.corp:
-            total_punct += sum(self.corp[doc]['is_punct'])
-        non_punct = corpus_total - total_punct
-        #TODO: display these
-        docs = doc_tokens(self.corp, with_attr=True)
-        tp = scoU._convert_totuple(docs)
-        #TODO: Compares strings. Consider enum
-        outputFormat = self.outputFormat.checkedAction().text()
-        self.runProgress.setText("Sorting tokens and building table")
-        QApplication.processEvents()
-        if   outputFormat == "Word List":
-            token_counts = scoU._count_tokens(tp, non_punct)
-            sortedTokens = sorted(token_counts, key= lambda x : x[1], reverse=True)
-            self._oWordList()
-        elif outputFormat == "Part of Speech":
-            pos_counts = scoU._count_tags(tp, non_punct)
-            sortedTokens = sorted(pos_counts  , key= lambda x : x[1], reverse=True)
-            self._oPartOfSpeech()
-        elif outputFormat == "Docuscope Tags":
-            ds_counts = scoU._count_ds(tp, non_punct)
-            sortedTokens = sorted(ds_counts   , key= lambda x : x[1], reverse=True)
-            self._oDocuscopeTags()
-        else:
-            raise Exception("Unknown format. Should be impossible")
-        #visuals
-        self.runProgress.setText("Displaying output")
-        QApplication.processEvents()
-        for (word, count, prop, range) in sortedTokens :
-            QTreeWidgetItem(self.outputTree, [word, str(count), str(prop), str(range)])
+        if not (self.corp is None):
+            corpus_total = corpus_num_tokens(self.corp)
+            total_punct = 0
+            for doc in self.corp:
+                total_punct += sum(self.corp[doc]['is_punct'])
+            non_punct = corpus_total - total_punct
+            #TODO: display these
+            tokenDict = scoA.convert_corpus(self.corp)
+            print("CT: "+str(corpus_total)+", TP: "+str(total_punct)+", NP: "+str(non_punct)+", DL: "+str(len(tokenDict)))
+            
+            self.runProgress.setText("Sorting"+str(len(tokenDict))+"tokens and building table")
+            QApplication.processEvents()
+            #Handles final processing and output
+            self._newAnalysis(tokenDict)
         self.runProgress.setText("Done")
 
     # Action Functionality Placeholder
@@ -105,9 +97,9 @@ class Window(QMainWindow):
         #TODO add openFolders
         for fname in selectedFileNames[0]:
             if fname in self.openFileDict:
-                self.openFileDict.update({fname : open(fname, "r")})
+                self.openFileDict.update({fname : None})
             else:
-                self.openFileDict.update({fname : open(fname, "r")})
+                self.openFileDict.update({fname : None})
                 listItem = QListWidgetItem()
                 listItem.setToolTip(fname)
                 listItem.setText(fname.replace("\\", "/").split("/")[-1])
@@ -174,16 +166,15 @@ class Window(QMainWindow):
             self.currFileW.sortItems()
     def currListDoubleClick(self, item):
         if self.documentViewAction.isChecked():
-            self.inputText.setText(self.openFileDict[item.toolTip()].read())
+            self.docViewFile = item.toolTip()
+            self.inputText.setText(open(item.toolTip(), "r").read())
     def toggleTextEditor(self):
         if self.documentViewAction.isChecked():
-            self._oTreeDoc()
             self.inputText = QTextEdit()
             self.inputText.setAcceptRichText(False)
             self.inputText.setReadOnly(True)
             self.visuals.insertWidget(0, self.inputText, 1)
         else:
-            self._oWordList()
             self.visuals.removeWidget(self.inputText)
             self.inputText.deleteLater()
 
@@ -207,12 +198,23 @@ class Window(QMainWindow):
         self.outputTree.setHeaderLabels(["Text", "Tag", "Entry Type", "Entry IOB"])
         self.outputTree.clear()
 
-    def _createOutput(self, viewMode):
+    def _newAnalysis(self, tokenDict):
         """
-        Initializes the ouput tree according to the above viewmode
+        Initializes the output tree according to self.viewmode
         """
-        
-        
+        pd = None
+        if   self.viewMode == ViewMode.freqTable:
+            pd = scoA.frequency_table()
+        else:
+            raise Exception("Unknown format. Should be impossible")
+        #visuals
+        self.runProgress.setText("Displaying output")
+        QApplication.processEvents()
+        for (word, count, prop, range) in pd :
+            QTreeWidgetItem(self.outputTree, [word, str(count), str(prop), str(range)])
+    
+    def _createOutput(self):
+        self.outputFormat.actions()[self.viewMode].setChecked(True)
     def _createMenuBar(self):
         menuBar = self.menuBar()
         #File
@@ -253,19 +255,18 @@ class Window(QMainWindow):
         viewMenu.addAction(self.documentViewAction)
         viewMenu.addSection("Output Format")
         self.outputFormat = QActionGroup(viewMenu)
-        tokAction = QAction("Token Frequency", self)
-        tagAction = QAction("Tag Frequency", self)
-        dtmAction = QAction("Document Term Matrix", self)
-        ngmAction = QAction("N-gram Frequencies", self)
-        cllAction = QAction("Collacations", self)
-        KWCAction = QAction("KWIC Table", self)
-        keyAction = QAction("Keyness Between Target and Reference Corpora", self)
+        self.outputFormat.addAction(QAction("Token Frequency", self))
+        self.outputFormat.addAction(QAction("Tag Frequency", self))
+        self.outputFormat.addAction(QAction("Document Term Matrix", self))
+        self.outputFormat.addAction(QAction("N-gram Frequencies", self))
+        self.outputFormat.addAction(QAction("Collacations", self))
+        self.outputFormat.addAction(QAction("KWIC Table", self))
+        self.outputFormat.addAction(QAction("Keyness Between Target and Reference Corpora", self))
         for action in self.outputFormat.actions():
             action.setCheckable(True)
-            self.outputFormat.addAction(action)
             viewMenu.addAction(action)
         self.outputFormat.setExclusive(True)
-        self._createOutput(ViewMode.freqTable)
+        self._createOutput()
 
         #Settings
         settingsMenu = menuBar.addMenu("Settings")
@@ -346,15 +347,21 @@ class Window(QMainWindow):
         centralWidget = QWidget()
         centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(centralWidget)
+        #viewMode must be created here to have the right option checked
+        self.viewMode = 0
         self._createMenuBar()
         #initialize model
         self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "model-new"))
         #Functionality
+        #Functional part of Open File List. Other argument is None 
         self.openFileDict = {}
+        #Used when a docView file is open. stores which file it is
+        self.docViewFile = None
+        #Keeps track of additions to the Current File List. Added when analyzer is run
         self.openFilesToBeAdded = []
+        #Functional part of Open File List. Other argument is None 
         self.currFileDict = {}
         self.corp = None
-        self.viewMode = 1
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
