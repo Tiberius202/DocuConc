@@ -139,11 +139,7 @@ class Window(QMainWindow):
                 self.currFileDict.update({fname : None})
                 self.openFilesToBeAdded.append(fname)
                 #update visuals
-<<<<<<< Updated upstream
                 self.currFileW.addItem(QListWidgetItem(item))
-=======
-                self.currFileW.addItem(item)
->>>>>>> Stashed changes
                 self.currFileW.sortItems()
     def remove(self):
         fnames = self.currFileW.selectedItems()
