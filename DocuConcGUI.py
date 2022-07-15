@@ -25,27 +25,29 @@ def pre_process(txt):
 
 class ViewMode(enum.Enum):
     #Count of token frequencies
-    freqTable = 1
+    freqTable = 0
     #Count of tags frequencies
-    tagsTable = 2
+    tagsTable = 1
     #Document-term matrix of raw tag counts
-    tagsDTM = 3
+    tagsDTM = 2
     #Table of NGRAM frequencies
-    NGramTable = 4
+    NGramTable = 3
     #a table of collocations by association measure
-    collacTable = 5
+    collacTable = 4
     #a KWIC table with the node word in the center column
-    KWICCenter = 6
+    KWICCenter = 5
     #A keyness table comparing token frequencies from a taget and a reference corpus
-    keyNessTable = 7
+    keyNessTable = 6
 
 class Window(QMainWindow):
     def runSpacyModel(self):
+        """
+        Corpus Processing function. Called when run alyzer is clicked. 
+        Uses functions from docuscospacy to do processing.
+        """
+        #Begin Corpus Processing
         if self.documentViewAction.isChecked():
-            doc = self.nlp(pre_process(self.inputText.toPlainText()))
-            self._oTreeDoc()
-            for token in doc:
-                QTreeWidgetItem(self.outputTree, [token.text, token.tag_, token.ent_type_, token.ent_iob_] )
+            self.corp = self.nlp(pre_process(self.inputText.toPlainText())) 
         else:
             if len(self.openFilesToBeAdded) > 0:
                 if self.corp is None:
@@ -60,42 +62,42 @@ class Window(QMainWindow):
                         self.corp,
                         self.openFilesToBeAdded,
                         doc_label_fmt='{basename}')
-                self.runProgress.setText("Post processing corpus")
-                QApplication.processEvents()
                 self.openFilesToBeAdded = []
-                corpus_total = corpus_num_tokens(self.corp)
-                corpus_types = vocabulary_size(self.corp)
-                total_punct = 0
-                for doc in self.corp:
-                    total_punct += sum(self.corp[doc]['is_punct'])
-                non_punct = corpus_total - total_punct
-                #TODO: display these
-                docs = doc_tokens(self.corp, with_attr=True)
-                tp = scoU._convert_totuple(docs)
-                #TODO: Compares strings. Consider enum
-                outputFormat = self.outputFormat.checkedAction().text()
-                self.runProgress.setText("Sorting tokens and building table")
-                QApplication.processEvents()
-                if   outputFormat == "Word List":
-                    token_counts = scoU._count_tokens(tp, non_punct)
-                    sortedTokens = sorted(token_counts, key= lambda x : x[1], reverse=True)
-                    self._oWordList()
-                elif outputFormat == "Part of Speech":
-                    pos_counts = scoU._count_tags(tp, non_punct)
-                    sortedTokens = sorted(pos_counts  , key= lambda x : x[1], reverse=True)
-                    self._oPartOfSpeech()
-                elif outputFormat == "Docuscope Tags":
-                    ds_counts = scoU._count_ds(tp, non_punct)
-                    sortedTokens = sorted(ds_counts   , key= lambda x : x[1], reverse=True)
-                    self._oDocuscopeTags()
-                else:
-                    raise Exception("Unknown format. Should be impossible")
-                #visuals
-                self.runProgress.setText("Displaying output")
-                QApplication.processEvents()
-                for (word, count, prop, range) in sortedTokens :
-                    QTreeWidgetItem(self.outputTree, [word, str(count), str(prop), str(range)])
-                self.runProgress.setText("Done")
+        self.runProgress.setText("Post processing corpus")
+        QApplication.processEvents()
+        #Calculate total number of tokens to normalize and display
+        corpus_total = corpus_num_tokens(self.corp)
+        total_punct = 0
+        for doc in self.corp:
+            total_punct += sum(self.corp[doc]['is_punct'])
+        non_punct = corpus_total - total_punct
+        #TODO: display these
+        docs = doc_tokens(self.corp, with_attr=True)
+        tp = scoU._convert_totuple(docs)
+        #TODO: Compares strings. Consider enum
+        outputFormat = self.outputFormat.checkedAction().text()
+        self.runProgress.setText("Sorting tokens and building table")
+        QApplication.processEvents()
+        if   outputFormat == "Word List":
+            token_counts = scoU._count_tokens(tp, non_punct)
+            sortedTokens = sorted(token_counts, key= lambda x : x[1], reverse=True)
+            self._oWordList()
+        elif outputFormat == "Part of Speech":
+            pos_counts = scoU._count_tags(tp, non_punct)
+            sortedTokens = sorted(pos_counts  , key= lambda x : x[1], reverse=True)
+            self._oPartOfSpeech()
+        elif outputFormat == "Docuscope Tags":
+            ds_counts = scoU._count_ds(tp, non_punct)
+            sortedTokens = sorted(ds_counts   , key= lambda x : x[1], reverse=True)
+            self._oDocuscopeTags()
+        else:
+            raise Exception("Unknown format. Should be impossible")
+        #visuals
+        self.runProgress.setText("Displaying output")
+        QApplication.processEvents()
+        for (word, count, prop, range) in sortedTokens :
+            QTreeWidgetItem(self.outputTree, [word, str(count), str(prop), str(range)])
+        self.runProgress.setText("Done")
 
     # Action Functionality Placeholder
     def openFile(self):
@@ -137,7 +139,11 @@ class Window(QMainWindow):
                 self.currFileDict.update({fname : None})
                 self.openFilesToBeAdded.append(fname)
                 #update visuals
+<<<<<<< Updated upstream
                 self.currFileW.addItem(QListWidgetItem(item))
+=======
+                self.currFileW.addItem(item)
+>>>>>>> Stashed changes
                 self.currFileW.sortItems()
     def remove(self):
         fnames = self.currFileW.selectedItems()
@@ -204,6 +210,12 @@ class Window(QMainWindow):
         self.outputTree.setColumnCount(4)
         self.outputTree.setHeaderLabels(["Text", "Tag", "Entry Type", "Entry IOB"])
         self.outputTree.clear()
+
+    def _createOutput(self, viewMode):
+        """
+        Initializes the ouput tree according to the above viewmode
+        """
+        
         
     def _createMenuBar(self):
         menuBar = self.menuBar()
@@ -245,21 +257,20 @@ class Window(QMainWindow):
         viewMenu.addAction(self.documentViewAction)
         viewMenu.addSection("Output Format")
         self.outputFormat = QActionGroup(viewMenu)
-        tokAction = QAction("Token Frequency Table", self)
-        tagAction = QAction("Tag Frequency Table", self)
-        dtmAction = QAction("Document Term Matrix of tag counts", self)
-        
-        wordlistAction.setCheckable(True)
-        partOfSpeech.setCheckable(True)
-        docuscope.setCheckable(True)
-        self.outputFormat.addAction(wordlistAction)
-        self.outputFormat.addAction(partOfSpeech)
-        self.outputFormat.addAction(docuscope)
-        wordlistAction.setChecked(True)
+        tokAction = QAction("Token Frequency", self)
+        tagAction = QAction("Tag Frequency", self)
+        dtmAction = QAction("Document Term Matrix", self)
+        ngmAction = QAction("N-gram Frequencies", self)
+        cllAction = QAction("Collacations", self)
+        KWCAction = QAction("KWIC Table", self)
+        keyAction = QAction("Keyness Between Target and Reference Corpora", self)
+        for action in self.outputFormat.actions():
+            action.setCheckable(True)
+            self.outputFormat.addAction(action)
+            viewMenu.addAction(action)
         self.outputFormat.setExclusive(True)
-        viewMenu.addAction(wordlistAction)
-        viewMenu.addAction(partOfSpeech)
-        viewMenu.addAction(docuscope)
+        self._createOutput(ViewMode.freqTable)
+
         #Settings
         settingsMenu = menuBar.addMenu("Settings")
         #Help TODO link webpages
