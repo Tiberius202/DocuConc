@@ -43,28 +43,6 @@ class ViewMode(enum.Enum):
     keyNessTable = 6
 
 class Window(QMainWindow):
-    #Viewmode for switching type of analysis to preform
-    viewMode = ViewMode.freqTable
-    #Class used to make many similiar viewmode functions for updating the variable
-    class ViewModeAction(QAction):
-        def __init__(self, text : str, parent, mode : ViewMode) -> None:
-            super().__init__(text, parent)
-            self.mode = mode
-        def fn (self, checked : bool) -> None:
-            if not(checked):
-                Window.viewMode = self.mode
-    #initialize model
-    nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "model-new"))
-    #Functionality
-    #Functional part of Open File List. Other argument is None 
-    openFileDict = {}
-    #Used when a docView file is open. stores which file it is
-    docViewFile = None
-    #Keeps track of additions to the Current File List. Added when analyzer is run
-    openFilesToBeAdded = []
-    #Functional part of Open File List. Other argument is None 
-    currFileDict = {}
-    corp = None
     def runSpacyModel(self):
         """
         Corpus Processing function. Called when run alyzer is clicked. 
