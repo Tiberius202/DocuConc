@@ -43,6 +43,17 @@ class ViewMode(enum.IntEnum):
     keyNessTable = 6
 
 class Window(QMainWindow):
+    #Used to change the viewMode in other functions
+    def setViewMode(self, mode : ViewMode):
+        self.viewMode = mode
+    #Class used to make many similiar viewmode functions for updating the variable
+    class ViewModeAction(QAction):
+        def __init__(self, win, text : str, parent, mode : ViewMode) -> None:
+            super().__init__(text, parent)
+            self.win = win
+            self.mode = mode
+        def fn (self, checked : bool) -> None:
+            self.win.setViewMode(self.mode)
     def runSpacyModel(self):
         """
         Corpus Processing function. Called when run alyzer is clicked. 
@@ -182,7 +193,6 @@ class Window(QMainWindow):
         """
         Initializes the output tree according to self.viewmode
         """
-        print(self.viewMode)
         self.outputFormat.actions()[self.viewMode].setChecked(True)
         #TODO Define These
         ng_span = 3
@@ -259,22 +269,21 @@ class Window(QMainWindow):
         viewMenu.addAction(self.documentViewAction)
         viewMenu.addSection("Output Format")
         self.outputFormat = QActionGroup(viewMenu)
-        self.ViewModeAction("Token Frequency",         self.outputFormat, ViewMode.freqTable)
-        self.ViewModeAction("Tag Frequency",           self.outputFormat, ViewMode.tagsTable)
-        self.ViewModeAction("Document Term Matrix",    self.outputFormat, ViewMode.tagsDTM)
-        self.ViewModeAction("N-gram Frequencies",      self.outputFormat, ViewMode.NGramTable)
-        self.ViewModeAction("Collacations",            self.outputFormat, ViewMode.collacTable)
-        self.ViewModeAction("KWIC Table",              self.outputFormat, ViewMode.KWICCenter)
-        self.ViewModeAction("Keyness Between Corpora", self.outputFormat, ViewMode.keyNessTable)
+        #Makes the actions in a row. Need that first self arguement so class know which object to update
+        self.ViewModeAction(self, "Token Frequency",         self.outputFormat, ViewMode.freqTable)
+        self.ViewModeAction(self, "Tag Frequency",           self.outputFormat, ViewMode.tagsTable)
+        self.ViewModeAction(self, "Document Term Matrix",    self.outputFormat, ViewMode.tagsDTM)
+        self.ViewModeAction(self, "N-gram Frequencies",      self.outputFormat, ViewMode.NGramTable)
+        self.ViewModeAction(self, "Collacations",            self.outputFormat, ViewMode.collacTable)
+        self.ViewModeAction(self, "KWIC Table",              self.outputFormat, ViewMode.KWICCenter)
+        self.ViewModeAction(self, "Keyness Between Corpora", self.outputFormat, ViewMode.keyNessTable)
         for action in self.outputFormat.actions():
             action.setCheckable(True)
             action.toggled.connect(action.fn)
             viewMenu.addAction(action)
         self.viewMode = ViewMode.freqTable
         self.outputFormat.setExclusive(True)
-        print(self.viewMode)
         self.outputFormat.actions()[self.viewMode].setChecked(True)
-        print(self.viewMode)
 
         #Settings
         settingsMenu = menuBar.addMenu("Settings")
