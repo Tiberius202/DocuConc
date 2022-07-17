@@ -18,7 +18,7 @@ from tkinter import filedialog
 from tmtoolkit.corpus import Corpus, vocabulary_size, doc_tokens, corpus_num_tokens, corpus_add_files
 import corpusLibOverwrites
 
-#Lambda to be used in Corpus.from_Files
+#Function to be passed into Corpus.from_Files
 def pre_process(txt):
         txt = re.sub(r'\bits\b', 'it s', txt)
         txt = re.sub(r'\bIts\b', 'It s', txt)
@@ -26,7 +26,7 @@ def pre_process(txt):
         return(txt)
 
 @enum.unique
-class ViewMode(enum.Enum):
+class ViewMode(enum.IntEnum):
     #Count of token frequencies
     freqTable = 0
     #Count of tags frequencies
@@ -85,10 +85,10 @@ class Window(QMainWindow):
             tokenDict = scoA.convert_corpus(self.corp)
             print("CT: "+str(corpus_total)+", TP: "+str(total_punct)+", NP: "+str(non_punct)+", DL: "+str(len(tokenDict)))
             
-            self.runProgress.setText("Sorting"+str(len(tokenDict))+"tokens and building table")
+            self.runProgress.setText("Sorting "+str(non_punct)+" tokens and building table")
             QApplication.processEvents()
             #Handles final processing and output
-            self._newAnalysis(tokenDict)
+            self._outputFromtokenDict(tokenDict, non_punct)
         self.runProgress.setText("Done")
 
     # Action Functionality Placeholder
@@ -178,43 +178,47 @@ class Window(QMainWindow):
             self.visuals.removeWidget(self.inputText)
             self.inputText.deleteLater()
 
-    def _oWordList(self):
-        self.outputTree.setColumnCount(4)
-        self.outputTree.setHeaderLabels(["Word", "Count", "Prop", "Range"])
-        self.outputTree.clear()
-
-    def _oPartOfSpeech(self):
-        self.outputTree.setColumnCount(4)
-        self.outputTree.setHeaderLabels(["POS Tag", "Count", "Prop", "Range"])
-        self.outputTree.clear()
-
-    def _oDocuscopeTags(self):
-        self.outputTree.setColumnCount(4)
-        self.outputTree.setHeaderLabels(["Docuscope Tag", "Count", "Prop", "Range"])
-        self.outputTree.clear()
-    
-    def _oTreeDoc(self):
-        self.outputTree.setColumnCount(4)
-        self.outputTree.setHeaderLabels(["Text", "Tag", "Entry Type", "Entry IOB"])
-        self.outputTree.clear()
-
-    def _newAnalysis(self, tokenDict):
+    def _outputFromtokenDict(self, tokenDict, elements):
         """
         Initializes the output tree according to self.viewmode
         """
+        print(self.viewMode)
+        self.outputFormat.actions()[self.viewMode].setChecked(True)
+        #TODO Define These
+        ng_span = 3
+        node_word = "analyze"
         pd = None
         if   self.viewMode == ViewMode.freqTable:
-            pd = scoA.frequency_table()
+            pd = scoA.frequency_table(tokenDict, elements)
+        elif self.viewMode == ViewMode.tagsTable:
+            pd = scoA.tags_table(tokenDict, elements)
+        elif self.viewMode == ViewMode.tagsDTM:
+            pd = scoA.tags_dtm(tokenDict)
+        elif self.viewMode == ViewMode.NGramTable:
+            pd = scoA.ngrams_table(tokenDict, ng_span, elements)
+        elif self.viewMode == ViewMode.collacTable:
+            pd = scoA.coll_table(tokenDict, node_word)
+        elif self.viewMode == ViewMode.KWICCenter:
+            pd = scoA.kwic_center_node(self.corp, node_word)
+        elif self.viewMode == ViewMode.keyNessTable:
+            #TODO: pd = scoA.keyness_table(target_counts, ref_counts)
+            pass
         else:
             raise Exception("Unknown format. Should be impossible")
         #visuals
         self.runProgress.setText("Displaying output")
         QApplication.processEvents()
-        for (word, count, prop, range) in pd :
-            QTreeWidgetItem(self.outputTree, [word, str(count), str(prop), str(range)])
-    
-    def _createOutput(self):
-        self.outputFormat.actions()[self.viewMode].setChecked(True)
+        if pd is None:
+            self.outputTree.clear()
+        else:
+            #Update the visuals
+            headers = pd.head(1)
+            self.outputTree.setColumnCount(len(headers))
+            self.outputTree.setHeaderLabels(headers)
+            self.outputTree.clear()
+            for tup in pd.itertuples(False, None) :
+                QTreeWidgetItem(self.outputTree, list(map(str, tup)))
+
     def _createMenuBar(self):
         menuBar = self.menuBar()
         #File
@@ -255,18 +259,22 @@ class Window(QMainWindow):
         viewMenu.addAction(self.documentViewAction)
         viewMenu.addSection("Output Format")
         self.outputFormat = QActionGroup(viewMenu)
-        self.outputFormat.addAction(QAction("Token Frequency", self))
-        self.outputFormat.addAction(QAction("Tag Frequency", self))
-        self.outputFormat.addAction(QAction("Document Term Matrix", self))
-        self.outputFormat.addAction(QAction("N-gram Frequencies", self))
-        self.outputFormat.addAction(QAction("Collacations", self))
-        self.outputFormat.addAction(QAction("KWIC Table", self))
-        self.outputFormat.addAction(QAction("Keyness Between Target and Reference Corpora", self))
+        self.ViewModeAction("Token Frequency",         self.outputFormat, ViewMode.freqTable)
+        self.ViewModeAction("Tag Frequency",           self.outputFormat, ViewMode.tagsTable)
+        self.ViewModeAction("Document Term Matrix",    self.outputFormat, ViewMode.tagsDTM)
+        self.ViewModeAction("N-gram Frequencies",      self.outputFormat, ViewMode.NGramTable)
+        self.ViewModeAction("Collacations",            self.outputFormat, ViewMode.collacTable)
+        self.ViewModeAction("KWIC Table",              self.outputFormat, ViewMode.KWICCenter)
+        self.ViewModeAction("Keyness Between Corpora", self.outputFormat, ViewMode.keyNessTable)
         for action in self.outputFormat.actions():
             action.setCheckable(True)
+            action.toggled.connect(action.fn)
             viewMenu.addAction(action)
+        self.viewMode = ViewMode.freqTable
         self.outputFormat.setExclusive(True)
-        self._createOutput()
+        print(self.viewMode)
+        self.outputFormat.actions()[self.viewMode].setChecked(True)
+        print(self.viewMode)
 
         #Settings
         settingsMenu = menuBar.addMenu("Settings")
@@ -287,7 +295,7 @@ class Window(QMainWindow):
         self.visuals = QHBoxLayout()
         self.outputTree = QTreeWidget()
         self.outputTree.setColumnWidth(0, 200)
-        self._oWordList()
+        self.outputTree.setHeaderLabels([""])
         self.visuals.addWidget(self.outputTree, 1)
         workspace.addLayout(self.visuals)
 
@@ -347,8 +355,7 @@ class Window(QMainWindow):
         centralWidget = QWidget()
         centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(centralWidget)
-        #viewMode must be created here to have the right option checked
-        self.viewMode = 0
+        self.viewMode = ViewMode.freqTable
         self._createMenuBar()
         #initialize model
         self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "model-new"))
