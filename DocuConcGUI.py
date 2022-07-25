@@ -1,4 +1,5 @@
 from logging import exception
+from operator import truediv
 import sys
 import spacy
 import os
@@ -334,9 +335,20 @@ class Window(QMainWindow):
         closeButton = QPushButton()
         closeButton.setText("Close")
         closeButton.clicked.connect(self.close)
+        addListButton = QPushButton()
+        addListButton.setText("Toggle List 2")
+        def toggleList2(self):
+            # if (extraBarOn == 0):
+            barHolder.addLayout(extraLeftBar)
+                # extraBarOn = 1
+            """# else:
+            barHolder.removeItem(extraLeftBar)
+                # extraBarOn = 0"""
+        addListButton.clicked.connect(toggleList2)
         openAndCloseBox = QHBoxLayout()
         openAndCloseBox.addWidget(openButton)
         openAndCloseBox.addWidget(closeButton)
+        openAndCloseBox.addWidget(addListButton)
         leftBar.addLayout(openAndCloseBox)
         leftBar.addWidget(self.openFileW)
         addButton = QPushButton()
@@ -351,7 +363,50 @@ class Window(QMainWindow):
         leftBar.addLayout(addAndRemoveBox)
         leftBar.addWidget(self.currFileW)
 
-        mainView.addLayout(leftBar, 1)
+        extraLeftBar = QVBoxLayout()
+        self.extraOpenFileW = QListWidget()
+        self.extraOpenFileW.itemDoubleClicked.connect(self.openListDoubleClick)
+        self.extraOpenFileW.setSelectionMode(self.extraOpenFileW.SelectionMode.ExtendedSelection)
+        self.extraCurrFileW = QListWidget()
+        self.extraCurrFileW.itemDoubleClicked.connect(self.currListDoubleClick)
+        self.extraCurrFileW.setSelectionMode(self.extraCurrFileW.SelectionMode.ExtendedSelection)
+        extraOpenButton = QPushButton()
+        extraOpenButton.setText("Open")
+        extraOpenButton.clicked.connect(self.openFile)
+        extraCloseButton = QPushButton()
+        extraCloseButton.setText("Close")
+        extraCloseButton.clicked.connect(self.close)
+        extraOpenAndCloseBox = QHBoxLayout()
+        extraOpenAndCloseBox.addWidget(extraOpenButton)
+        extraOpenAndCloseBox.addWidget(extraCloseButton)
+        extraLeftBar.addLayout(extraOpenAndCloseBox)
+        extraLeftBar.addWidget(self.extraOpenFileW)
+        extraAddButton = QPushButton()
+        extraAddButton.setText("Add")
+        extraAddButton.clicked.connect(self.add)
+        extraRemoveButton = QPushButton()
+        extraRemoveButton.setText("Remove")
+        extraRemoveButton.clicked.connect(self.remove)
+        extraAddAndRemoveBox = QHBoxLayout()
+        extraAddAndRemoveBox.addWidget(extraAddButton)
+        extraAddAndRemoveBox.addWidget(extraRemoveButton)
+        extraLeftBar.addLayout(extraAddAndRemoveBox)
+        extraLeftBar.addWidget(self.extraCurrFileW)
+        """extraOpenAndCloseBox = QHBoxLayout()
+        extraOpenAndCloseBox.addWidget(openButton)
+        extraOpenAndCloseBox.addWidget(closeButton)
+        extraLeftBar.addLayout(extraOpenAndCloseBox)
+        extraLeftBar.addWidget(self.openFileW)
+        extraAddAndRemoveBox = QHBoxLayout()
+        extraAddAndRemoveBox.addWidget(addButton)
+        extraAddAndRemoveBox.addWidget(removeButton)
+        extraLeftBar.addLayout(extraAddAndRemoveBox)
+        extraLeftBar.addWidget(self.currFileW)"""
+
+        barHolder = QHBoxLayout()
+        barHolder.addLayout(leftBar)
+
+        mainView.addLayout(barHolder, 1)
         mainView.addLayout(workspace, 4)
         return mainView
 
