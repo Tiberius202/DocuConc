@@ -11,7 +11,7 @@ import docuscospacy.corpus_utils as scoU
 #Output of docuscospacy calls
 import pandas
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar, QMessageBox
 from PyQt6.QtGui import QAction, QActionGroup
 from PyQt6.QtCore import Qt
 from itertools import *
@@ -123,9 +123,16 @@ class Window(QMainWindow):
                 #self.currFileW.sortItems()
         self.openFileW.sortItems()
     def saveFile(self):
-        selectedFileName = QFileDialog.getSaveFileName(self, 'Save File', filter = "Comma Separated Values (*.csv)")
-        print(selectedFileName)
-        self.pd.to_csv(selectedFileName[0])
+        if self.pd is None:
+            msgBox =  QMessageBox(self)
+            msgBox.setText("No results to save");
+            msgBox.setInformativeText("Load files with open files\nAdd them to the workspace\nRun the analyzer\nThen save the results");
+            msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+            msgBox.setDefaultButton(QMessageBox.StandardButton.Ok)
+            msgBox.exec()
+        else:
+            selectedFileName = QFileDialog.getSaveFileName(self, 'Save File', filter = "Comma Separated Values (*.csv)")
+            self.pd.to_csv(selectedFileName[0])
     def close(self):
         print("TODO: most likely replace with close all")
     def add(self):
@@ -462,6 +469,8 @@ class Window(QMainWindow):
         #Functional part of Open File List. Other argument is None 
         self.currFileDict = {}
         self.corp = None
+        #panda object. What is shown in outputTree when made in _outputFromtokenDict
+        self.pd = None
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
