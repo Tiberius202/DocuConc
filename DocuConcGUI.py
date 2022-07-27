@@ -1,5 +1,6 @@
 from logging import exception
 from operator import truediv
+from select import select
 import sys
 import spacy
 import os
@@ -14,7 +15,6 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout,
 from PyQt6.QtGui import QAction, QActionGroup
 from PyQt6.QtCore import Qt
 from itertools import *
-from tkinter import filedialog
 
 from tmtoolkit.corpus import Corpus, vocabulary_size, doc_tokens, corpus_num_tokens, corpus_add_files
 import corpusLibOverwrites
@@ -123,15 +123,9 @@ class Window(QMainWindow):
                 #self.currFileW.sortItems()
         self.openFileW.sortItems()
     def saveFile(self):
-        selectedFileNames = filedialog.askopenfilename(initialdir = "/",
-                                            title = "Select a File",
-                                            filetypes = (("Text files",
-                                                        "*.txt*"),
-                                                       ("all files",
-                                                        "*.*")))
-        if len(selectedFileNames) > 0:                                                 
-            f = open(selectedFileNames, "w")
-            f.write("""TODO:Put the shit that we have open later in this place so we can save it""")
+        selectedFileName = QFileDialog.getSaveFileName(self, 'Save File', filter = "Comma Separated Values (*.csv)")
+        print(selectedFileName)
+        self.pd.to_csv(selectedFileName[0])
     def close(self):
         print("TODO: most likely replace with close all")
     def add(self):
@@ -198,19 +192,19 @@ class Window(QMainWindow):
         #TODO Define These
         ng_span = 3
         node_word = "analyze"
-        pd = None
+        self.pd = None
         if   self.viewMode == ViewMode.freqTable:
-            pd = scoA.frequency_table(tokenDict, elements)
+            self.pd = scoA.frequency_table(tokenDict, elements)
         elif self.viewMode == ViewMode.tagsTable:
-            pd = scoA.tags_table(tokenDict, elements)
+            self.pd = scoA.tags_table(tokenDict, elements)
         elif self.viewMode == ViewMode.tagsDTM:
-            pd = scoA.tags_dtm(tokenDict)
+            self.pd = scoA.tags_dtm(tokenDict)
         elif self.viewMode == ViewMode.NGramTable:
-            pd = scoA.ngrams_table(tokenDict, ng_span, elements)
+            self.pd = scoA.ngrams_table(tokenDict, ng_span, elements)
         elif self.viewMode == ViewMode.collacTable:
-            pd = scoA.coll_table(tokenDict, node_word)
+            self.pd = scoA.coll_table(tokenDict, node_word)
         elif self.viewMode == ViewMode.KWICCenter:
-            pd = scoA.kwic_center_node(self.corp, node_word)
+            self.pd = scoA.kwic_center_node(self.corp, node_word)
         elif self.viewMode == ViewMode.keyNessTable:
             #TODO: pd = scoA.keyness_table(target_counts, ref_counts)
             pass
@@ -219,15 +213,15 @@ class Window(QMainWindow):
         #visuals
         self.runProgress.setText("Displaying output")
         QApplication.processEvents()
-        if pd is None:
+        if self.pd is None:
             self.outputTree.clear()
         else:
             #Update the visuals
-            headers = pd.head(1)
+            headers = self.pd.head(1)
             self.outputTree.setColumnCount(len(headers))
             self.outputTree.setHeaderLabels(headers)
             self.outputTree.clear()
-            for tup in pd.itertuples(False, None) :
+            for tup in self.pd.itertuples(False, None) :
                 QTreeWidgetItem(self.outputTree, list(map(str, tup)))
 
     def _createMenuBar(self):
