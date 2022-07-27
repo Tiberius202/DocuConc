@@ -322,46 +322,7 @@ class Window(QMainWindow):
         workspace.addWidget(self.runProgress, alignment=Qt.AlignmentFlag.AlignRight)
 
         #Used for managing files
-        leftBar = QVBoxLayout()
-        self.openFileW = QListWidget()
-        self.openFileW.itemDoubleClicked.connect(self.openListDoubleClick)
-        self.openFileW.setSelectionMode(self.openFileW.SelectionMode.ExtendedSelection)
-        self.currFileW = QListWidget()
-        self.currFileW.itemDoubleClicked.connect(self.currListDoubleClick)
-        self.currFileW.setSelectionMode(self.currFileW.SelectionMode.ExtendedSelection)
-        openButton = QPushButton()
-        openButton.setText("Open")
-        openButton.clicked.connect(self.openFile)
-        closeButton = QPushButton()
-        closeButton.setText("Close")
-        closeButton.clicked.connect(self.close)
-        addListButton = QPushButton()
-        addListButton.setText("Toggle List 2")
-        def toggleList2(self):
-            # if (extraBarOn == 0):
-            barHolder.addLayout(extraLeftBar)
-                # extraBarOn = 1
-            """# else:
-            barHolder.removeItem(extraLeftBar)
-                # extraBarOn = 0"""
-        addListButton.clicked.connect(toggleList2)
-        openAndCloseBox = QHBoxLayout()
-        openAndCloseBox.addWidget(openButton)
-        openAndCloseBox.addWidget(closeButton)
-        openAndCloseBox.addWidget(addListButton)
-        leftBar.addLayout(openAndCloseBox)
-        leftBar.addWidget(self.openFileW)
-        addButton = QPushButton()
-        addButton.setText("Add")
-        addButton.clicked.connect(self.add)
-        removeButton = QPushButton()
-        removeButton.setText("Remove")
-        removeButton.clicked.connect(self.remove)
-        addAndRemoveBox = QHBoxLayout()
-        addAndRemoveBox.addWidget(addButton)
-        addAndRemoveBox.addWidget(removeButton)
-        leftBar.addLayout(addAndRemoveBox)
-        leftBar.addWidget(self.currFileW)
+        barHolder = QHBoxLayout()
 
         extraLeftBar = QVBoxLayout()
         self.extraOpenFileW = QListWidget()
@@ -392,6 +353,81 @@ class Window(QMainWindow):
         extraAddAndRemoveBox.addWidget(extraRemoveButton)
         extraLeftBar.addLayout(extraAddAndRemoveBox)
         extraLeftBar.addWidget(self.extraCurrFileW)
+
+        leftBar = QVBoxLayout()
+        self.openFileW = QListWidget()
+        self.openFileW.itemDoubleClicked.connect(self.openListDoubleClick)
+        self.openFileW.setSelectionMode(self.openFileW.SelectionMode.ExtendedSelection)
+        self.currFileW = QListWidget()
+        self.currFileW.itemDoubleClicked.connect(self.currListDoubleClick)
+        self.currFileW.setSelectionMode(self.currFileW.SelectionMode.ExtendedSelection)
+        openButton = QPushButton()
+        openButton.setText("Open")
+        openButton.clicked.connect(self.openFile)
+        closeButton = QPushButton()
+        closeButton.setText("Close")
+        closeButton.clicked.connect(self.close)
+        addListButton = QPushButton()
+        addListButton.setText("Toggle List 2")
+        global extraBarOn
+        extraBarOn = 1
+        # Delete Layout Functions
+        def deleteItemsOfLayout(layout):
+            if layout is not None:
+                while layout.count():
+                    item = layout.takeAt(0)
+                    widget = item.widget()
+                    if widget is not None:
+                        widget.setParent(None)
+                    else:
+                        deleteItemsOfLayout(item.layout())
+        def boxdelete(self, box):
+            for i in range(self.extraLeftBar.count()):
+                layout_item = self.extraLeftBar.itemAt(i)
+                if layout_item.barHolder() == box:
+                    deleteItemsOfLayout(layout_item.layout())
+                    self.extraLeftBar.removeItem(layout_item)
+                    break
+
+        def toggleList2(self):
+            global extraBarOn
+            if (extraBarOn == 0):
+                """extraOpenAndCloseBox.addWidget(openButton)
+                extraOpenAndCloseBox.addWidget(closeButton)
+                # extraLeftBar.addWidget(self.extraOpenFileW)
+                extraAddAndRemoveBox.addWidget(addButton)
+                extraAddAndRemoveBox.addWidget(removeButton)
+                # extraLeftBar.addWidget(self.extraCurrFileW)"""
+                barHolder.addLayout(extraLeftBar)
+                extraBarOn = 1
+            else:
+                extraOpenAndCloseBox.removeWidget(openButton)
+                extraOpenAndCloseBox.removeWidget(closeButton)
+                # extraLeftBar.removeWidget(self.extraOpenFileW)
+                extraAddAndRemoveBox.removeWidget(addButton)
+                extraAddAndRemoveBox.removeWidget(removeButton)
+                # extraLeftBar.removeWidget(self.currFileW)
+                barHolder.removeItem(extraLeftBar)
+                extraBarOn = 0
+        addListButton.clicked.connect(toggleList2)
+        openAndCloseBox = QHBoxLayout()
+        openAndCloseBox.addWidget(openButton)
+        openAndCloseBox.addWidget(closeButton)
+        openAndCloseBox.addWidget(addListButton)
+        leftBar.addLayout(openAndCloseBox)
+        leftBar.addWidget(self.openFileW)
+        addButton = QPushButton()
+        addButton.setText("Add")
+        addButton.clicked.connect(self.add)
+        removeButton = QPushButton()
+        removeButton.setText("Remove")
+        removeButton.clicked.connect(self.remove)
+        addAndRemoveBox = QHBoxLayout()
+        addAndRemoveBox.addWidget(addButton)
+        addAndRemoveBox.addWidget(removeButton)
+        leftBar.addLayout(addAndRemoveBox)
+        leftBar.addWidget(self.currFileW)
+
         """extraOpenAndCloseBox = QHBoxLayout()
         extraOpenAndCloseBox.addWidget(openButton)
         extraOpenAndCloseBox.addWidget(closeButton)
@@ -403,9 +439,8 @@ class Window(QMainWindow):
         extraLeftBar.addLayout(extraAddAndRemoveBox)
         extraLeftBar.addWidget(self.currFileW)"""
 
-        barHolder = QHBoxLayout()
         barHolder.addLayout(leftBar)
-
+        barHolder.addLayout(extraLeftBar)
         mainView.addLayout(barHolder, 1)
         mainView.addLayout(workspace, 4)
         return mainView
