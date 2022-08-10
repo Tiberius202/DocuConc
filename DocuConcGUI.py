@@ -149,6 +149,17 @@ class Window(QMainWindow):
                 #update visuals
                 self.currFileW.addItem(QListWidgetItem(item))
                 self.currFileW.sortItems()
+    def extraAdd(self):
+        fnames = self.openFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            if  (fname) not in self.extraCurrFileDict:
+                self.extraCurrFileDict.update({fname : None})
+                self.extraOpenFilesToBeAdded.append(fname)
+                #update visuals
+                self.extraCurrFileW.addItem(QListWidgetItem(item))
+                self.extraCurrFileW.sortItems()
     def remove(self):
         fnames = self.currFileW.selectedItems()
         if not fnames: return
@@ -157,6 +168,14 @@ class Window(QMainWindow):
             del self.currFileDict[fname]
             #update visuals
             self.currFileW.takeItem(self.currFileW.row(item))
+    def extraRemove(self):
+        fnames = self.currFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            del self.extraCurrFileDict[fname]
+            #update visuals
+            self.extraCurrFileW.takeItem(self.extraCurrFileW.row(item))
     def copyContent(self):
         # TODO: ALL of these are broken Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
@@ -345,14 +364,14 @@ class Window(QMainWindow):
         #Used for managing files
         barHolder = QHBoxLayout()
 
-        extraLeftBar = QVBoxLayout()
+        """extraLeftBar = QVBoxLayout()
         self.extraOpenFileW = QListWidget()
         self.extraOpenFileW.itemDoubleClicked.connect(self.openListDoubleClick)
-        self.extraOpenFileW.setSelectionMode(self.extraOpenFileW.SelectionMode.ExtendedSelection)
+        self.extraOpenFileW.setSelectionMode(self.extraOpenFileW.SelectionMode.ExtendedSelection)"""
         self.extraCurrFileW = QListWidget()
         self.extraCurrFileW.itemDoubleClicked.connect(self.currListDoubleClick)
         self.extraCurrFileW.setSelectionMode(self.extraCurrFileW.SelectionMode.ExtendedSelection)
-        extraOpenButton = QPushButton()
+        """extraOpenButton = QPushButton()
         extraOpenButton.setText("Open")
         extraOpenButton.clicked.connect(self.openFile)
         extraCloseButton = QPushButton()
@@ -362,18 +381,18 @@ class Window(QMainWindow):
         extraOpenAndCloseBox.addWidget(extraOpenButton)
         extraOpenAndCloseBox.addWidget(extraCloseButton)
         extraLeftBar.addLayout(extraOpenAndCloseBox)
-        extraLeftBar.addWidget(self.extraOpenFileW)
+        extraLeftBar.addWidget(self.extraOpenFileW)"""
         extraAddButton = QPushButton()
         extraAddButton.setText("Add")
-        extraAddButton.clicked.connect(self.add)
+        extraAddButton.clicked.connect(self.extraAdd)
         extraRemoveButton = QPushButton()
         extraRemoveButton.setText("Remove")
         extraRemoveButton.clicked.connect(self.remove)
         extraAddAndRemoveBox = QHBoxLayout()
         extraAddAndRemoveBox.addWidget(extraAddButton)
         extraAddAndRemoveBox.addWidget(extraRemoveButton)
-        extraLeftBar.addLayout(extraAddAndRemoveBox)
-        extraLeftBar.addWidget(self.extraCurrFileW)
+        """extraLeftBar.addLayout(extraAddAndRemoveBox)
+        extraLeftBar.addWidget(self.extraCurrFileW)"""
 
         leftBar = QVBoxLayout()
         self.openFileW = QListWidget()
@@ -448,6 +467,8 @@ class Window(QMainWindow):
         addAndRemoveBox.addWidget(removeButton)
         leftBar.addLayout(addAndRemoveBox)
         leftBar.addWidget(self.currFileW)
+        leftBar.addLayout(extraAddAndRemoveBox)
+        leftBar.addWidget(self.extraCurrFileW)
 
         """extraOpenAndCloseBox = QHBoxLayout()
         extraOpenAndCloseBox.addWidget(openButton)
@@ -461,7 +482,7 @@ class Window(QMainWindow):
         extraLeftBar.addWidget(self.currFileW)"""
 
         barHolder.addLayout(leftBar)
-        barHolder.addLayout(extraLeftBar)
+        """barHolder.addLayout(extraLeftBar)"""
         mainView.addLayout(barHolder, 1)
         mainView.addLayout(workspace, 4)
         return mainView
@@ -486,8 +507,10 @@ class Window(QMainWindow):
         self.docViewFile = None
         #Keeps track of additions to the Current File List. Added when analyzer is run
         self.openFilesToBeAdded = []
+        self.extraOpenFilesToBeAdded = []
         #Functional part of Open File List. Other argument is None 
         self.currFileDict = {}
+        self.extraCurrFileDict = {}
         self.corp = None
         #panda object. What is shown in outputTree when made in _outputFromtokenDict
         self.pd = None
