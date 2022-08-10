@@ -1,3 +1,4 @@
+from lib2to3.pgen2 import token
 from logging import exception
 from operator import truediv
 from select import select
@@ -95,7 +96,9 @@ class Window(QMainWindow):
             non_punct = corpus_total - total_punct
             #TODO: display these
             tokenDict = scoA.convert_corpus(self.corp)
-            print("CT: "+str(corpus_total)+", TP: "+str(total_punct)+", NP: "+str(non_punct)+", DL: "+str(len(tokenDict)))
+            self.tokenLbl.setText("Token Count: " + str(corpus_total))
+            self.wordLbl.setText("Word Count: " + str(non_punct))
+            self.docLbl.setText("Documents analyzed: " + str(len(tokenDict)))
             
             self.runProgress.setText("Sorting "+str(non_punct)+" tokens and building table")
             QApplication.processEvents()
@@ -221,6 +224,7 @@ class Window(QMainWindow):
         self.runProgress.setText("Displaying output")
         QApplication.processEvents()
         if self.pd is None:
+            self.outputLbl.setText("Row Count: 0")
             self.outputTree.clear()
         else:
             #Update the visuals
@@ -228,6 +232,7 @@ class Window(QMainWindow):
             self.outputTree.setColumnCount(len(headers))
             self.outputTree.setHeaderLabels(headers)
             self.outputTree.clear()
+            self.outputLbl.setText("Row Count: "+str(len(self.pd)))
             for tup in self.pd.itertuples(False, None) :
                 QTreeWidgetItem(self.outputTree, list(map(str, tup)))
 
@@ -309,6 +314,21 @@ class Window(QMainWindow):
         self.outputTree.setHeaderLabels([""])
         self.visuals.addWidget(self.outputTree, 1)
         workspace.addLayout(self.visuals)
+
+        countsBox = QHBoxLayout()
+        self.outputLbl = QLabel("Row Count: 0")
+        self.outputLbl.setToolTip("The number of unique elements analyzed. i.e. the rows of the above table")
+        countsBox.addWidget(self.outputLbl)
+        self.tokenLbl = QLabel("Token Count: 0")
+        self.tokenLbl.setToolTip("A count of the total tokens analyzed")
+        countsBox.addWidget(self.tokenLbl)
+        self.wordLbl = QLabel("Word Count: 0")
+        self.wordLbl.setToolTip("A count of the total tokens analyzed minus the punctuation")
+        countsBox.addWidget(self.wordLbl)
+        self.docLbl = QLabel("Documents analyzed: 0")
+        self.docLbl.setToolTip("Total number of files analyzed")
+        countsBox.addWidget(self.docLbl)
+        workspace.addLayout(countsBox)
 
         runButton = QPushButton()
         runButton.setText("Run analyzer")
