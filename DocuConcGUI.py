@@ -12,7 +12,7 @@ import docuscospacy.corpus_utils as scoU
 #Output of docuscospacy calls
 import pandas
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QHeaderView, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar, QMessageBox
 from PyQt6.QtGui import QAction, QActionGroup
 from PyQt6.QtCore import Qt
 from itertools import *
@@ -250,10 +250,14 @@ class Window(QMainWindow):
             headers = self.pd.head(1)
             self.outputTree.setColumnCount(len(headers))
             self.outputTree.setHeaderLabels(headers)
+            self.outputTree.header().setToolTip("TODO")
+            self.outputTree.header().setSortIndicatorShown(True)
+            self.outputTree.setSortingEnabled(False)
             self.outputTree.clear()
             self.outputLbl.setText("Row Count: "+str(len(self.pd)))
             for tup in self.pd.itertuples(False, None) :
                 QTreeWidgetItem(self.outputTree, list(map(str, tup)))
+            self.outputTree.setSortingEnabled(True)
 
     def _createMenuBar(self):
         menuBar = self.menuBar()
