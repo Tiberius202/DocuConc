@@ -105,6 +105,15 @@ class Window(QMainWindow):
             #Handles final processing and output
             self._outputFromtokenDict(tokenDict, non_punct)
         self.runProgress.setText("Done")
+    def toggleMode(self):
+        if self.posMode == "pos":
+            self.modeButton.setText("Docuscope Tags")
+            self.posMode = "ds"
+        elif self.posMode == "ds":
+            self.modeButton.setText("Part of Speech")
+            self.posMode = "pos"
+        else:
+            raise Exception("Error: unknown self.posMode")
 
     # Action Functionality Placeholder
     def openFile(self):
@@ -223,15 +232,15 @@ class Window(QMainWindow):
         node_word = "analyze"
         self.pd = None
         if   self.viewMode == ViewMode.freqTable:
-            self.pd = scoA.frequency_table(tokenDict, elements)
+            self.pd = scoA.frequency_table(tokenDict, elements, self.posMode)
         elif self.viewMode == ViewMode.tagsTable:
-            self.pd = scoA.tags_table(tokenDict, elements)
+            self.pd = scoA.tags_table(tokenDict, elements, self.posMode)
         elif self.viewMode == ViewMode.tagsDTM:
-            self.pd = scoA.tags_dtm(tokenDict)
+            self.pd = scoA.tags_dtm(tokenDict, self.posMode)
         elif self.viewMode == ViewMode.NGramTable:
-            self.pd = scoA.ngrams_table(tokenDict, ng_span, elements)
+            self.pd = scoA.ngrams_table(tokenDict, ng_span, elements, self.posMode)
         elif self.viewMode == ViewMode.collacTable:
-            self.pd = scoA.coll_table(tokenDict, node_word)
+            self.pd = scoA.coll_table(tokenDict, node_word, count_by=self.posMode)
         elif self.viewMode == ViewMode.KWICCenter:
             self.pd = scoA.kwic_center_node(self.corp, node_word)
         elif self.viewMode == ViewMode.keyNessTable:
@@ -353,10 +362,17 @@ class Window(QMainWindow):
         countsBox.addWidget(self.docLbl)
         workspace.addLayout(countsBox)
 
+        analButtons = QHBoxLayout()
         runButton = QPushButton()
         runButton.setText("Run analyzer")
         runButton.clicked.connect(self.runSpacyModel)
-        workspace.addWidget(runButton)
+        self.modeButton = QPushButton()
+        self.modeButton.setText("Part of Speech")
+        self.modeButton.setToolTip("TODO: Click to change to DS tagging")
+        self.modeButton.clicked.connect(self.toggleMode)
+        analButtons.addWidget(runButton, 3)
+        analButtons.addWidget(self.modeButton, 1)
+        workspace.addLayout(analButtons)
 
         self.runProgress = QLabel("Nothing Running")
         def newTextOutput(s : str):
@@ -518,6 +534,8 @@ class Window(QMainWindow):
         self.corp = None
         #panda object. What is shown in outputTree when made in _outputFromtokenDict
         self.pd = None
+        #posTagging vs docuscope tagging mode
+        self.posMode = "pos"
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
