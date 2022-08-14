@@ -157,7 +157,7 @@ class Window(QMainWindow):
                 self.openFilesToBeAdded.append(fname)
                 #update visuals
                 self.currFileW.addItem(QListWidgetItem(item))
-                self.currFileW.sortItems()
+        self.currFileW.sortItems()
     def extraAdd(self):
         fnames = self.openFileW.selectedItems()
         if not fnames: return
@@ -168,7 +168,7 @@ class Window(QMainWindow):
                 self.extraOpenFilesToBeAdded.append(fname)
                 #update visuals
                 self.extraCurrFileW.addItem(QListWidgetItem(item))
-                self.extraCurrFileW.sortItems()
+        self.extraCurrFileW.sortItems()
     def remove(self):
         fnames = self.currFileW.selectedItems()
         if not fnames: return
@@ -177,14 +177,12 @@ class Window(QMainWindow):
             del self.currFileDict[fname]
             #update visuals
             self.currFileW.takeItem(self.currFileW.row(item))
+        self.corp = None
+        for item in self.currFileDict.keys():
+            self.openFilesToBeAdded.append(item)
+#TODO: Fix this function
     def extraRemove(self):
-        fnames = self.currFileW.selectedItems()
-        if not fnames: return
-        for item in fnames:
-            fname = item.toolTip()
-            del self.extraCurrFileDict[fname]
-            #update visuals
-            self.extraCurrFileW.takeItem(self.extraCurrFileW.row(item))
+        pass
     def copyContent(self):
         # TODO: ALL of these are broken Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
