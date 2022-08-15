@@ -452,7 +452,7 @@ class Window(QMainWindow):
                     self.extraLeftBar.removeItem(layout_item)
                     break
 
-        def toggleList2(self):
+        def toggleList2(b):
             global extraBarOn
             if (extraBarOn == 0):
                 """extraOpenAndCloseBox.addWidget(openButton)
@@ -462,11 +462,11 @@ class Window(QMainWindow):
                 extraAddAndRemoveBox.addWidget(removeButton)
                 # extraLeftBar.addWidget(self.extraCurrFileW)"""
                 leftBar.addLayout(extraAddAndRemoveBox)
-                # leftBar.addWidget(self.extraCurrFileW)
+                leftBar.addWidget(self.extraCurrFileW)
                 extraBarOn = 1
             else:
                 leftBar.removeItem(extraAddAndRemoveBox)
-                # leftBar.removeWidget(self.extraCurrFileW)
+                leftBar.removeWidget(self.extraCurrFileW)
                 extraBarOn = 0
         addListButton.clicked.connect(toggleList2)
         openAndCloseBox = QHBoxLayout()
