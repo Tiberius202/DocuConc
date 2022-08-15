@@ -178,7 +178,16 @@ class Window(QMainWindow):
             self.openFilesToBeAdded.append(item)
 #TODO: Fix this function
     def extraRemove(self):
-        pass
+        fnames = self.extraCurrFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            del self.extraCurrFileDict[fname]
+            #update visuals
+            self.extraCurrFileW.takeItem(self.extraCurrFileW.row(item))
+        self.corp = None
+        for item in self.extraCurrFileDict.keys():
+            self.extraOpenFilesToBeAdded.append(item)
     def copyContent(self):
         # TODO: ALL of these are broken Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
@@ -401,7 +410,7 @@ class Window(QMainWindow):
         extraAddButton.clicked.connect(self.extraAdd)
         extraRemoveButton = QPushButton()
         extraRemoveButton.setText("Remove")
-        extraRemoveButton.clicked.connect(self.remove)
+        extraRemoveButton.clicked.connect(self.extraRemove)
         extraAddAndRemoveBox = QHBoxLayout()
         extraAddAndRemoveBox.addWidget(extraAddButton)
         extraAddAndRemoveBox.addWidget(extraRemoveButton)
@@ -452,16 +461,12 @@ class Window(QMainWindow):
                 extraAddAndRemoveBox.addWidget(addButton)
                 extraAddAndRemoveBox.addWidget(removeButton)
                 # extraLeftBar.addWidget(self.extraCurrFileW)"""
-                barHolder.addLayout(extraLeftBar)
+                leftBar.addLayout(extraAddAndRemoveBox)
+                # leftBar.addWidget(self.extraCurrFileW)
                 extraBarOn = 1
             else:
-                extraOpenAndCloseBox.removeWidget(openButton)
-                extraOpenAndCloseBox.removeWidget(closeButton)
-                # extraLeftBar.removeWidget(self.extraOpenFileW)
-                extraAddAndRemoveBox.removeWidget(addButton)
-                extraAddAndRemoveBox.removeWidget(removeButton)
-                # extraLeftBar.removeWidget(self.currFileW)
-                barHolder.removeItem(extraLeftBar)
+                leftBar.removeItem(extraAddAndRemoveBox)
+                # leftBar.removeWidget(self.extraCurrFileW)
                 extraBarOn = 0
         addListButton.clicked.connect(toggleList2)
         openAndCloseBox = QHBoxLayout()
@@ -496,6 +501,7 @@ class Window(QMainWindow):
         extraLeftBar.addWidget(self.currFileW)"""
 
         barHolder.addLayout(leftBar)
+        extraBarOn = 1
         """barHolder.addLayout(extraLeftBar)"""
         mainView.addLayout(barHolder, 1)
         mainView.addLayout(workspace, 4)
