@@ -157,6 +157,14 @@ class Window(QMainWindow):
             del self.currFileDict[fname]
             #update visuals
             self.currFileW.takeItem(self.currFileW.row(item))
+    def extraRemove(self):
+        fnames = self.extraCurrFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            del self.extraCurrFileDict[fname]
+            #update visuals
+            self.extraCurrFileW.takeItem(self.extraCurrFileW.row(item))
     def copyContent(self):
         # TODO: ALL of these are broken Logic for copying content goes here...
         self.centralWidget.setText("<b>Edit > Copy</b> clicked")
@@ -413,18 +421,17 @@ class Window(QMainWindow):
         def toggleList2(self):
             global extraBarOn
             if (extraBarOn == 0):
-                extraLeftBar = QVBoxLayout()
                 """extraLeftBar = QVBoxLayout()
                 extraLeftBar.addLayout(extraOpenAndCloseBox)
                 extraLeftBar.addWidget(self.extraOpenFileW)
                 extraLeftBar.addLayout(extraAddAndRemoveBox)
                 extraLeftBar.addWidget(self.extraCurrFileW)"""
                 leftBar.addLayout(extraAddAndRemoveBox)
-                # leftBar.addWidget(self.extraCurrFileW)
+                leftBar.addWidget(self.extraCurrFileW)
                 extraBarOn = 1
             else:
                 leftBar.removeItem(extraAddAndRemoveBox)
-                # leftBar.removeItem(self.extraCurrFileW)
+                leftBar.removeItem(self.extraCurrFileW)
                 extraBarOn = 0
         addListButton.clicked.connect(toggleList2)
         openAndCloseBox = QHBoxLayout()
@@ -484,6 +491,7 @@ class Window(QMainWindow):
         self.openFilesToBeAdded = []
         #Functional part of Open File List. Other argument is None 
         self.currFileDict = {}
+        self.extraCurrFileDict = {}
         self.corp = None
         #panda object. What is shown in outputTree when made in _outputFromtokenDict
         self.pd = None
