@@ -432,8 +432,7 @@ class Window(QMainWindow):
         closeButton.clicked.connect(self.close)
         addListButton = QPushButton()
         addListButton.setText("Toggle List 2")
-        global extraBarOn
-        extraBarOn = 1
+        addListButton.setCheckable(True)
         # Delete Layout Functions
         def deleteItemsOfLayout(layout):
             if layout is not None:
@@ -453,8 +452,7 @@ class Window(QMainWindow):
                     break
 
         def toggleList2(b):
-            global extraBarOn
-            if (extraBarOn == 0):
+            if b:
                 """extraOpenAndCloseBox.addWidget(openButton)
                 extraOpenAndCloseBox.addWidget(closeButton)
                 # extraLeftBar.addWidget(self.extraOpenFileW)
@@ -463,11 +461,9 @@ class Window(QMainWindow):
                 # extraLeftBar.addWidget(self.extraCurrFileW)"""
                 leftBar.addLayout(extraAddAndRemoveBox)
                 leftBar.addWidget(self.extraCurrFileW)
-                extraBarOn = 1
             else:
                 leftBar.removeItem(extraAddAndRemoveBox)
                 leftBar.removeWidget(self.extraCurrFileW)
-                extraBarOn = 0
         addListButton.clicked.connect(toggleList2)
         openAndCloseBox = QHBoxLayout()
         openAndCloseBox.addWidget(openButton)
