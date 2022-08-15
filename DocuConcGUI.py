@@ -1,7 +1,3 @@
-from lib2to3.pgen2 import token
-from logging import exception
-from operator import truediv
-from select import select
 import sys
 import spacy
 import os
@@ -137,8 +133,8 @@ class Window(QMainWindow):
     def saveFile(self):
         if self.pd is None:
             msgBox =  QMessageBox(self)
-            msgBox.setText("No results to save");
-            msgBox.setInformativeText("Load files with open files\nAdd them to the workspace\nRun the analyzer\nThen save the results");
+            msgBox.setText("No results to save")
+            msgBox.setInformativeText("Load files with open files\nAdd them to the workspace\nRun the analyzer\nThen save the results")
             msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
             msgBox.setDefaultButton(QMessageBox.StandardButton.Ok)
             msgBox.exec()
