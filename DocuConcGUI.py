@@ -8,9 +8,9 @@ import docuscospacy.corpus_utils as scoU
 #Output of docuscospacy calls
 import pandas
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QHeaderView, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTreeView, QHeaderView, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar, QMessageBox
 from PyQt6.QtGui import QAction, QActionGroup
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QAbstractItemModel
 from itertools import *
 
 from tmtoolkit.corpus import Corpus, vocabulary_size, doc_tokens, corpus_num_tokens, corpus_add_files
@@ -39,6 +39,35 @@ class ViewMode(enum.IntEnum):
     KWICCenter = 5
     #A keyness table comparing token frequencies from a taget and a reference corpus
     keyNessTable = 6
+
+class OutputModel(QAbstractItemModel):
+    def __init__(self, parent):
+        self.header = ["Output"]
+        self.items = []
+        self.col = 0
+        self.row = 0
+        self.parent = parent
+        super().__init__(parent)
+    def insertColumns(self, column: int, count: int, parent):
+        return True
+    def setHeaderData(self, section, orientation, value, role):
+        self.header = [0]*section
+        return True
+    def index(self, row, column, parent):
+        return self.items[row][column]
+    def parent(self, index):
+        return self.parent
+    def rowCount(self, parent):
+        return self.row
+    def columnCount(self, parent):
+        if self.items != []:
+            return self.col
+        else:
+            return 0
+    def data(self, index, role):
+        return self.items[index]
+    def sort(columm, order= Qt.SortOrder.AscendingOrder):
+        print("TODO model")
 
 class Window(QMainWindow):
     #Used to change the viewMode in other functions
@@ -261,14 +290,21 @@ class Window(QMainWindow):
             #Update the visuals
             headers = self.pd.head(1)
             self.outputTree.setColumnCount(len(headers))
-            self.outputTree.setHeaderLabels(headers)
+            self.outputTree.setHeaderD
             self.outputTree.header().setToolTip("TODO")
             self.outputTree.header().setSortIndicatorShown(True)
             self.outputTree.setSortingEnabled(False)
             self.outputTree.clear()
             self.outputLbl.setText("Row Count: "+str(len(self.pd)))
             for tup in self.pd.itertuples(False, None) :
-                QTreeWidgetItem(self.outputTree, list(map(str, tup)))
+                widgetItem = QTreeWidgetItem(self.outputTree, 1000)
+                col = 0
+                for ite in list(tup):
+                    if type(ite) == str:
+                        widgetItem.setData(col, 0, ite)
+                    elif type(ite) == int or type(ite) == float:
+                        widgetItem.setData(col, 0x100, ite)
+                    col+=1
             self.outputTree.setSortingEnabled(True)
 
     def _createMenuBar(self):
@@ -344,9 +380,13 @@ class Window(QMainWindow):
         workspace = QVBoxLayout()
 
         self.visuals = QHBoxLayout()
-        self.outputTree = QTreeWidget()
+        self.outputTree = QTreeView()
+        self.outputModel = OutputModel(None)
+        self.outputTree.setModel(self.outputModel)
         self.outputTree.setColumnWidth(0, 200)
-        self.outputTree.setHeaderLabels([""])
+        header = QHeaderView(Qt.Orientation.Horizontal)
+        self.outputModel.setHeaderData("TODO")
+        self.outputTree.setUniformRowHeights(True)
         self.visuals.addWidget(self.outputTree, 1)
         workspace.addLayout(self.visuals)
 
