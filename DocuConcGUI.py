@@ -294,17 +294,16 @@ class Window(QMainWindow):
             self.outputTree.header().setSortIndicatorShown(True)
             self.outputTree.setSortingEnabled(False)
             self.outputModel.clear()
+            self.outputModel.setColumnCount(len(headers))
             self.outputLbl.setText("Row Count: "+str(len(self.pd)))
-            for tup in self.pd.itertuples(False, None) :
-                widgetItem = QStandardItem()
-                col = 0
+            for tup in self.pd.itertuples(False, None):
+                items = []
                 for ite in list(tup):
-                    if type(ite) == str:
-                        widgetItem.setData(col, 0, ite)
-                    elif type(ite) == int or type(ite) == float:
-                        widgetItem.setData(col, 0x100, ite)
-                    col+=1
-                self.outputModel.appendRow(widgetItem)
+                    item = QStandardItem()
+                    item.setData(str(ite), Qt.ItemDataRole.DisplayRole)
+                    item.setData(ite, Qt.ItemDataRole.UserRole)
+                    items.append(item)
+                self.outputModel.appendRow(items)
             self.outputTree.setSortingEnabled(True)
 
     def _createMenuBar(self):
@@ -382,6 +381,7 @@ class Window(QMainWindow):
         self.visuals = QHBoxLayout()
         self.outputTree = QTreeView()
         self.outputModel = QStandardItemModel(None)
+        self.outputModel.setSortRole(Qt.ItemDataRole.UserRole)
         self.outputTree.setModel(self.outputModel)
         self.outputTree.setColumnWidth(0, 200)
         header = QHeaderView(Qt.Orientation.Horizontal)
