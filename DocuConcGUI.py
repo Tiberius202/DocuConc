@@ -3,28 +3,29 @@ import spacy
 import os
 import re
 import enum
+#David Brown's NLP library. The functional part of this program
 import docuscospacy.corpus_analysis as scoA
-import docuscospacy.corpus_utils as scoU
-#Output of docuscospacy calls
-import pandas
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QAbstractItemView, QListWidget, QListWidgetItem, QTreeWidget, QTreeWidgetItem, QTreeView, QHeaderView, QTextEdit, QWidget, QFileDialog, QToolBar, QMenuBar, QMessageBox
+#PyQt Front end for gui
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QHeaderView, QTextEdit, QWidget, QFileDialog, QMessageBox
 from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem
 from PyQt6.QtCore import Qt
-from itertools import *
 
-from tmtoolkit.corpus import Corpus, vocabulary_size, doc_tokens, corpus_num_tokens, corpus_add_files
+#TMToolkit for managing corpora. Used by docuscospacy
+from tmtoolkit.corpus import Corpus, corpus_num_tokens, corpus_add_files
+#The following file overwrites tmtoolkit functions in order to display the loading progress
 import corpusLibOverwrites
 
-#Function to be passed into Corpus.from_Files
 def pre_process(txt):
-        txt = re.sub(r'\bits\b', 'it s', txt)
-        txt = re.sub(r'\bIts\b', 'It s', txt)
-        txt = " ".join(txt.split())
-        return(txt)
+    """Function to be passed into Corpus.from_Files"""
+    txt = re.sub(r'\bits\b', 'it s', txt)
+    txt = re.sub(r'\bIts\b', 'It s', txt)
+    txt = " ".join(txt.split())
+    return(txt)
 
 @enum.unique
 class ViewMode(enum.IntEnum):
+    """Enum used to handle which mode and form of analysis is"""
     #Count of token frequencies
     freqTable = 0
     #Count of tags frequencies
@@ -40,56 +41,30 @@ class ViewMode(enum.IntEnum):
     #A keyness table comparing token frequencies from a taget and a reference corpus
     keyNessTable = 6
 
-class OutputModel(QStandardItemModel):
-    def __init__(self, parent):
-        self.header = ["Output"]
-        self.items = []
-        self.col = 0
-        self.row = 0
-        self.parent = parent
-        super().__init__(parent)
-    def insertColumns(self, column: int, count: int, parent):
-        return True
-    def setHeaderData(self, section, orientation, value, role):
-        self.header = [0]*section
-        return True
-    def index(self, row, column, parent):
-        return self.items[row][column]
-    def parent(self, index):
-        return self.parent
-    def rowCount(self, parent):
-        return self.row
-    def columnCount(self, parent):
-        if self.items != []:
-            return self.col
-        else:
-            return 0
-    def data(self, index, role):
-        return self.items[index]
-    def sort(columm, order= Qt.SortOrder.AscendingOrder):
-        print("TODO model")
-
 class Window(QMainWindow):
-    #Used to change the viewMode in other functions
+    """Window for PyQtGui. Wraps all PyQt functionality"""
     def setViewMode(self, mode : ViewMode):
+        """Used to change the viewMode in other functions"""
         self.viewMode = mode
-    #Class used to make many similiar viewmode functions for updating the variable
+
     class ViewModeAction(QAction):
+        """Class used to make many similiar viewmode functions for updating the variable"""
         def __init__(self, win, text : str, parent, mode : ViewMode) -> None:
             super().__init__(text, parent)
             self.win = win
             self.mode = mode
         def fn (self, checked : bool) -> None:
             self.win.setViewMode(self.mode)
+
     def runSpacyModel(self):
         """
-        Corpus Processing function. Called when run alyzer is clicked. 
-        Uses functions from docuscospacy to do processing.
+        Corpus Processing function. Called when run analyzer is clicked. 
+        Uses from_files and add_files from TMToolkit to do processing.
         """
         #Begin Corpus Processing
         if self.documentViewAction.isChecked():
             if not (self.docViewFile is None):
-                self.corp = self.corp = Corpus.from_files(
+                self.corp = Corpus.from_files(
                             [self.docViewFile],
                             spacy_instance=self.nlp, 
                             raw_preproc=pre_process, 
@@ -118,32 +93,35 @@ class Window(QMainWindow):
             total_punct = 0
             for doc in self.corp:
                 total_punct += sum(self.corp[doc]['is_punct'])
-            non_punct = corpus_total - total_punct
-            #TODO: display these
-            tokenDict = scoA.convert_corpus(self.corp)
+            self.non_punct = corpus_total - total_punct
+            self.tokenDict = scoA.convert_corpus(self.corp)
             self.tokenLbl.setText("Token Count: " + str(corpus_total))
-            self.wordLbl.setText("Word Count: " + str(non_punct))
-            self.docLbl.setText("Documents analyzed: " + str(len(tokenDict)))
+            self.wordLbl.setText("Word Count: " + str(self.non_punct))
+            self.docLbl.setText("Documents analyzed: " + str(len(self.tokenDict)))
             
-            self.runProgress.setText("Sorting "+str(non_punct)+" tokens and building table")
+            self.runProgress.setText("Sorting "+str(self.non_punct)+" tokens and building table")
             QApplication.processEvents()
-            #Handles final processing and output
-            self._outputFromtokenDict(tokenDict, non_punct)
+            #Handles docuscospacy processing and output
+            self._outputFromtokenDict()
         self.runProgress.setText("Done")
+
     def toggleMode(self):
+        """Used by the modeButton. changes posMode"""
         if self.posMode == "pos":
             self.modeButton.setText("Docuscope Tags")
+            self.modeButton.setToolTip("Click to change to Part of Speech tagging")
             self.posMode = "ds"
         elif self.posMode == "ds":
             self.modeButton.setText("Part of Speech")
+            self.modeButton.setToolTip("Click to change to Docuscope tagging")
             self.posMode = "pos"
         else:
             raise Exception("Error: unknown self.posMode")
+        self._outputFromtokenDict()
 
-    # Action Functionality Placeholder
     def openFile(self):
+        """Opens files to the openFileDict and openFileW"""
         selectedFileNames = QFileDialog.getOpenFileNames(self, 'Open File', filter = "Text files (*.txt);; All Files (*)")
-        #TODO add openFolders
         for fname in selectedFileNames[0]:
             if fname in self.openFileDict:
                 self.openFileDict.update({fname : None})
@@ -153,13 +131,9 @@ class Window(QMainWindow):
                 listItem.setToolTip(fname)
                 listItem.setText(fname.replace("\\", "/").split("/")[-1])
                 self.openFileW.addItem(listItem)
-                #TODO: Make adding to current default but possibly add toggle
-                #self.currFileDict.update({fname : None})
-                #self.openFilesToBeAdded.append(fname)
-                #self.currFileW.addItem(QListWidgetItem(listItem))
-                #self.currFileW.sortItems()
         self.openFileW.sortItems()
     def saveFile(self):
+        """Saves outputTree to csv using pandas to csv command"""
         if self.pd is None:
             msgBox =  QMessageBox(self)
             msgBox.setText("No results to save")
@@ -171,8 +145,13 @@ class Window(QMainWindow):
             selectedFileName = QFileDialog.getSaveFileName(self, 'Save File', filter = "Comma Separated Values (*.csv)")
             self.pd.to_csv(selectedFileName[0])
     def close(self):
+        """Closes seleected files. Removes from all lists and fileDicts"""
         print("TODO: most likely replace with close all")
     def add(self):
+        """
+        Adds file from openFileDict to currFileDict
+        Updates files to be added so that they are included on next run of the analyzer
+        """
         fnames = self.openFileW.selectedItems()
         if not fnames: return
         for item in fnames:
@@ -180,10 +159,13 @@ class Window(QMainWindow):
             if  (fname) not in self.currFileDict:
                 self.currFileDict.update({fname : None})
                 self.openFilesToBeAdded.append(fname)
-                #update visuals
                 self.currFileW.addItem(QListWidgetItem(item))
         self.currFileW.sortItems()
     def extraAdd(self):
+        """
+        TODO: Implement.
+        adds files from open fileDict to currFileDict
+        """
         fnames = self.openFileW.selectedItems()
         if not fnames: return
         for item in fnames:
@@ -195,6 +177,11 @@ class Window(QMainWindow):
                 self.extraCurrFileW.addItem(QListWidgetItem(item))
         self.extraCurrFileW.sortItems()
     def remove(self):
+        """
+        Removes files from currFileDict. Undoes Add.
+        Refreshes the currFileDict so that a new corpus is made. 
+        Tmtoolkit does not have remove from files, but does have add.
+        """
         fnames = self.currFileW.selectedItems()
         if not fnames: return
         for item in fnames:
@@ -205,8 +192,11 @@ class Window(QMainWindow):
         self.corp = None
         for item in self.currFileDict.keys():
             self.openFilesToBeAdded.append(item)
-#TODO: Fix this function
     def extraRemove(self):
+        """
+        TODO: Implement
+        Removes from extraCurrFileW.
+        """
         fnames = self.extraCurrFileW.selectedItems()
         if not fnames: return
         for item in fnames:
@@ -217,22 +207,14 @@ class Window(QMainWindow):
         self.corp = None
         for item in self.extraCurrFileDict.keys():
             self.extraOpenFilesToBeAdded.append(item)
-    def copyContent(self):
-        # TODO: ALL of these are broken Logic for copying content goes here...
-        self.centralWidget.setText("<b>Edit > Copy</b> clicked")
-    def pasteContent(self):
-        # Logic for pasting content goes here...
-        self.centralWidget.setText("<b>Edit > Paste</b> clicked")
-    def cutContent(self):
-        # Logic for cutting content goes here...
-        self.centralWidget.setText("<b>Edit > Cut</b> clicked")
     def helpContent(self):
-        # Logic for launching help goes here...
-        self.centralWidget.setText("<b>Help > Help Content...</b> clicked")
+        """Logic for launching help goes here..."""
+        self.runProgress.setText("<b>Help > Help Content...</b> clicked")
     def about(self):
-        # Logic for showing an about dialog content goes here...
-        self.centralWidget.setText("<b>Help > About...</b> clicked")
+        """Logic for showing an about dialog content goes here..."""
+        self.runProgress.setText("<b>Help > About...</b> clicked")
     def openListDoubleClick(self, item):
+        """Used when an item of the openListW is clicked. Adds file to currFileW"""
         fname = item.toolTip()
         if  (fname) not in self.currFileDict:
             self.currFileDict.update({fname : None})
@@ -241,10 +223,12 @@ class Window(QMainWindow):
             self.currFileW.addItem(QListWidgetItem(item))
             self.currFileW.sortItems()
     def currListDoubleClick(self, item):
+        """Used whan an item of the currListW is clicked. Opens to the right if in docViewMode"""
         if self.documentViewAction.isChecked():
             self.docViewFile = item.toolTip()
             self.inputText.setText(open(item.toolTip(), "r").read())
     def toggleTextEditor(self):
+        """Opens and closes docViewMode"""
         if self.documentViewAction.isChecked():
             self.inputText = QTextEdit()
             self.inputText.setAcceptRichText(False)
@@ -254,9 +238,10 @@ class Window(QMainWindow):
             self.visuals.removeWidget(self.inputText)
             self.inputText.deleteLater()
 
-    def _outputFromtokenDict(self, tokenDict, elements):
+    def _outputFromtokenDict(self):
         """
         Initializes the output tree according to self.viewmode
+        Used in RunSpacyModel and after switching between part of speech and docuscope modes
         """
         self.outputFormat.actions()[self.viewMode].setChecked(True)
         #TODO Define These
@@ -264,15 +249,15 @@ class Window(QMainWindow):
         node_word = "analyze"
         self.pd = None
         if   self.viewMode == ViewMode.freqTable:
-            self.pd = scoA.frequency_table(tokenDict, elements, self.posMode)
+            self.pd = scoA.frequency_table(self.tokenDict, self.non_punct, self.posMode)
         elif self.viewMode == ViewMode.tagsTable:
-            self.pd = scoA.tags_table(tokenDict, elements, self.posMode)
+            self.pd = scoA.tags_table(self.tokenDict, self.non_punct, self.posMode)
         elif self.viewMode == ViewMode.tagsDTM:
-            self.pd = scoA.tags_dtm(tokenDict, self.posMode)
+            self.pd = scoA.tags_dtm(self.tokenDict, self.posMode)
         elif self.viewMode == ViewMode.NGramTable:
-            self.pd = scoA.ngrams_table(tokenDict, ng_span, elements, self.posMode)
+            self.pd = scoA.ngrams_table(self.tokenDict, ng_span, self.non_punct, self.posMode)
         elif self.viewMode == ViewMode.collacTable:
-            self.pd = scoA.coll_table(tokenDict, node_word, count_by=self.posMode)
+            self.pd = scoA.coll_table(self.tokenDict, node_word, count_by=self.posMode)
         elif self.viewMode == ViewMode.KWICCenter:
             self.pd = scoA.kwic_center_node(self.corp, node_word)
         elif self.viewMode == ViewMode.keyNessTable:
@@ -280,22 +265,20 @@ class Window(QMainWindow):
             pass
         else:
             raise Exception("Unknown format. Should be impossible")
-        #visuals
+        #Update the visuals
         self.runProgress.setText("Displaying output")
         QApplication.processEvents()
+        self.outputModel.clear()
         if self.pd is None:
             self.outputLbl.setText("Row Count: 0")
-            self.outputTree.clear()
         else:
-            #Update the visuals
-            headers = self.pd.head(1)
+            headers = self.pd.columns
             self.outputModel.setHorizontalHeaderLabels(headers)
-            self.outputTree.header().setToolTip("TODO")
+            self.outputModel.setColumnCount(len(headers))
             self.outputTree.header().setSortIndicatorShown(True)
             self.outputTree.setSortingEnabled(False)
-            self.outputModel.clear()
-            self.outputModel.setColumnCount(len(headers))
             self.outputLbl.setText("Row Count: "+str(len(self.pd)))
+            #Fill in data. Sorting should be off when inserting for performance
             for tup in self.pd.itertuples(False, None):
                 items = []
                 for ite in list(tup):
@@ -307,6 +290,10 @@ class Window(QMainWindow):
             self.outputTree.setSortingEnabled(True)
 
     def _createMenuBar(self):
+        """
+        Called on initialization to create the menu bar
+        Has four menus, File, View, Settings, and About
+        """
         menuBar = self.menuBar()
         #File
         fileMenu = menuBar.addMenu("File")
@@ -323,22 +310,7 @@ class Window(QMainWindow):
         exitAction = QAction("Exit", self)
         exitAction.triggered.connect(self.close)
         fileMenu.addAction(exitAction)
-        #Edit TODO Remove
-        editMenu = menuBar.addMenu("Edit")
-        copyAction = QAction("&Copy", self)
-        copyAction.triggered.connect(self.copyContent)
-        editMenu.addAction(copyAction)
-
-        pasteAction = QAction("&Paste", self)
-        pasteAction.triggered.connect(self.pasteContent)
-        editMenu.addAction(pasteAction)
-
-        cutAction = QAction("&Cut", self)
-        cutAction.triggered.connect(self.cutContent)
-        editMenu.addAction(cutAction)
-        editMenu.addSeparator()
-        findMenu = editMenu.addMenu("&Find and Replace")
-        #View
+        #ViewMode related functionality
         viewMenu = menuBar.addMenu("View")
         self.documentViewAction = QAction("&Document View", self)
         self.documentViewAction.setCheckable(True)
@@ -362,9 +334,7 @@ class Window(QMainWindow):
         self.outputFormat.setExclusive(True)
         self.outputFormat.actions()[self.viewMode].setChecked(True)
 
-        #Settings
         settingsMenu = menuBar.addMenu("Settings")
-        #Help TODO link webpages
         helpMenu = menuBar.addMenu("Help")
         helpContentAction = QAction("&Help Content", self)
         helpContentAction.triggered.connect(self.helpContent)
@@ -374,6 +344,9 @@ class Window(QMainWindow):
         helpMenu.addAction(aboutAction)
 
     def _createMainView(self):
+        """
+        Called on initialization to create the main view Where all of the interactables are
+        """
         mainView = QHBoxLayout()
 
         workspace = QVBoxLayout()
@@ -411,7 +384,7 @@ class Window(QMainWindow):
         runButton.clicked.connect(self.runSpacyModel)
         self.modeButton = QPushButton()
         self.modeButton.setText("Part of Speech")
-        self.modeButton.setToolTip("TODO: Click to change to DS tagging")
+        self.modeButton.setToolTip("Click to change to Docuscope tagging")
         self.modeButton.clicked.connect(self.toggleMode)
         analButtons.addWidget(runButton, 3)
         analButtons.addWidget(self.modeButton, 1)
@@ -427,14 +400,14 @@ class Window(QMainWindow):
         #Used for managing files
         barHolder = QHBoxLayout()
 
-        """extraLeftBar = QVBoxLayout()
+        """TODO: extraLeftBar = QVBoxLayout()
         self.extraOpenFileW = QListWidget()
         self.extraOpenFileW.itemDoubleClicked.connect(self.openListDoubleClick)
         self.extraOpenFileW.setSelectionMode(self.extraOpenFileW.SelectionMode.ExtendedSelection)"""
         self.extraCurrFileW = QListWidget()
         self.extraCurrFileW.itemDoubleClicked.connect(self.currListDoubleClick)
         self.extraCurrFileW.setSelectionMode(self.extraCurrFileW.SelectionMode.ExtendedSelection)
-        """extraOpenButton = QPushButton()
+        """TODO: extraOpenButton = QPushButton()
         extraOpenButton.setText("Open")
         extraOpenButton.clicked.connect(self.openFile)
         extraCloseButton = QPushButton()
@@ -454,7 +427,7 @@ class Window(QMainWindow):
         extraAddAndRemoveBox = QHBoxLayout()
         extraAddAndRemoveBox.addWidget(extraAddButton)
         extraAddAndRemoveBox.addWidget(extraRemoveButton)
-        """extraLeftBar.addLayout(extraAddAndRemoveBox)
+        """TODO: extraLeftBar.addLayout(extraAddAndRemoveBox)
         extraLeftBar.addWidget(self.extraCurrFileW)"""
 
         leftBar = QVBoxLayout()
@@ -473,7 +446,7 @@ class Window(QMainWindow):
         addListButton = QPushButton()
         addListButton.setText("Toggle List 2")
         addListButton.setCheckable(True)
-        # Delete Layout Functions
+        # Functions for adding and removing list 2
         def deleteItemsOfLayout(layout):
             if layout is not None:
                 while layout.count():
@@ -504,6 +477,7 @@ class Window(QMainWindow):
             else:
                 leftBar.removeItem(extraAddAndRemoveBox)
                 leftBar.removeWidget(self.extraCurrFileW)
+        #End functions for adding and remocing list 2
         addListButton.clicked.connect(toggleList2)
         openAndCloseBox = QHBoxLayout()
         openAndCloseBox.addWidget(openButton)
@@ -525,7 +499,7 @@ class Window(QMainWindow):
         leftBar.addLayout(extraAddAndRemoveBox)
         leftBar.addWidget(self.extraCurrFileW)
 
-        """extraOpenAndCloseBox = QHBoxLayout()
+        """TODO: extraOpenAndCloseBox = QHBoxLayout()
         extraOpenAndCloseBox.addWidget(openButton)
         extraOpenAndCloseBox.addWidget(closeButton)
         extraLeftBar.addLayout(extraOpenAndCloseBox)
@@ -538,13 +512,13 @@ class Window(QMainWindow):
 
         barHolder.addLayout(leftBar)
         extraBarOn = 1
-        """barHolder.addLayout(extraLeftBar)"""
+        """TODO: barHolder.addLayout(extraLeftBar)"""
         mainView.addLayout(barHolder, 1)
         mainView.addLayout(workspace, 4)
         return mainView
 
-    # Creating Window
     def __init__(self, parent=None):
+        """Creates Window. Initializes PyQt app"""
         #GUI setup
         super().__init__(parent)
         self.setWindowTitle("BrownQt Work in Progress")
@@ -574,6 +548,7 @@ class Window(QMainWindow):
         self.posMode = "pos"
 
 if __name__ == "__main__":
+    """Boilerplate for running PyQt App. Uses Window class"""
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
     win = Window()
