@@ -2,7 +2,7 @@
 from tmtoolkit.corpus import Corpus
 
 #Used to make overwritten update method. needed for accurate progress bar
-from typing import Dict, Union, Sequence, ValuesView, Iterator, Generator
+from typing import Dict, Union, Sequence, Iterator
 from spacy.tokens import Doc
 from tmtoolkit.corpus._document import Document
 import logging

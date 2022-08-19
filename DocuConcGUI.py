@@ -494,7 +494,7 @@ class Window(QMainWindow):
         self.viewMode = ViewMode.freqTable
         self._createMenuBar()
         #initialize model
-        self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "model-new"))
+        self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "spacy-model"))
         #Functionality
         #Functional part of Open File List. Other argument is None 
         self.openFileDict = {}
