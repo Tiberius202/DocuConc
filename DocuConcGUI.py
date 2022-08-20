@@ -1,3 +1,4 @@
+from ast import keyword
 import sys
 import spacy
 import os
@@ -7,7 +8,7 @@ import enum
 import docuscospacy.corpus_analysis as scoA
 
 #PyQt Front end for gui
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QHeaderView, QTextEdit, QWidget, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QHeaderView, QTextEdit, QWidget, QFileDialog, QMessageBox, QLineEdit
 from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem
 from PyQt6.QtCore import Qt
 
@@ -47,6 +48,24 @@ class Window(QMainWindow):
         """Used to change the viewMode in other functions"""
         self.viewMode = mode
 
+    def openKeyword(self):
+        """Opens the keyword input and ranges"""
+        keywordBar = QHBoxLayout()
+        self.keyword = QLineEdit("Keyword")
+        self.ng_span = QLineEdit("3")
+        self.ng_span.setInputMask("D")
+        keywordBar.addWidget(self.keyword, 4)
+        keywordBar.addWidget(self.ng_span, 1)
+        self.workspace.insertLayout(2, keywordBar)
+
+    def closeKeyword(self):
+        """Closes the keyword input and ranges"""
+        bar = self.workspace.takeAt(2)
+        while bar.count() > 0:
+            item = bar.takeAt(0)
+            widget = item.widget()
+            widget.deleteLater()
+
     class ViewModeAction(QAction):
         """Class used to make many similiar viewmode functions for updating the variable"""
         def __init__(self, win, text : str, parent, mode : ViewMode) -> None:
@@ -54,7 +73,20 @@ class Window(QMainWindow):
             self.win = win
             self.mode = mode
         def fn (self, checked : bool) -> None:
-            self.win.setViewMode(self.mode)
+            if checked:
+                def needsKeyword(m):
+                    return m == ViewMode.collacTable or m == ViewMode.KWICCenter
+                def needsSpan(m):
+                    return m == ViewMode.NGramTable
+                if       needsKeyword(self.mode) and not needsKeyword(self.win.viewMode):
+                    self.win.openKeyword()
+                elif not needsKeyword(self.mode) and     needsKeyword(self.win.viewMode):
+                    self.win.closeKeyword()
+                if       needsSpan(self.mode) and not needsSpan(self.win.viewMode):
+                    self.win.openKeyword()
+                elif not needsSpan(self.mode) and     needsSpan(self.win.viewMode):
+                    self.win.closeKeyword()
+                self.win.setViewMode(self.mode)
 
     def runSpacyModel(self):
         """
@@ -236,9 +268,6 @@ class Window(QMainWindow):
         Used in RunSpacyModel and after switching between part of speech and docuscope modes
         """
         self.outputFormat.actions()[self.viewMode].setChecked(True)
-        #TODO Define These
-        ng_span = 3
-        node_word = "analyze"
         self.pd = None
         if   self.viewMode == ViewMode.freqTable:
             self.pd = scoA.frequency_table(self.tokenDict, self.non_punct, self.posMode)
@@ -247,11 +276,30 @@ class Window(QMainWindow):
         elif self.viewMode == ViewMode.tagsDTM:
             self.pd = scoA.tags_dtm(self.tokenDict, self.posMode)
         elif self.viewMode == ViewMode.NGramTable:
-            self.pd = scoA.ngrams_table(self.tokenDict, ng_span, self.non_punct, self.posMode)
+            span = int(self.ng_span.text())
+            if span < 2:
+                msgBox = QMessageBox(self)
+                msgBox.setText("Span must be between 2 and 5 inclusive")
+                msgBox.setInformativeText("Rerun the analyzer with correct span between 2 and 5 inclusive.\nAnalyzer has been run with span of 2")
+                msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                msgBox.setDefaultButton(QMessageBox.StandardButton.Ok)
+                msgBox.exec()
+                span = 2
+                self.ng_span.setText(str(span))
+            if span > 5:
+                msgBox = QMessageBox(self)
+                msgBox.setText("Span must be between 2 and 5 inclusive")
+                msgBox.setInformativeText("Rerun the analyzer with correct span between 2 and 5 inclusive.\nAnalyzer has been run with span of 5")
+                msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                msgBox.setDefaultButton(QMessageBox.StandardButton.Ok)
+                msgBox.exec()
+                span = 5
+                self.ng_span.setText(str(span))
+            self.pd = scoA.ngrams_table(self.tokenDict, span, self.non_punct, self.posMode)
         elif self.viewMode == ViewMode.collacTable:
-            self.pd = scoA.coll_table(self.tokenDict, node_word, count_by=self.posMode)
+            self.pd = scoA.coll_table(self.tokenDict, self.keyword.text(), count_by=self.posMode)
         elif self.viewMode == ViewMode.KWICCenter:
-            self.pd = scoA.kwic_center_node(self.corp, node_word)
+            self.pd = scoA.kwic_center_node(self.corp, self.keyword.text())
         elif self.viewMode == ViewMode.keyNessTable:
             #TODO: pd = scoA.keyness_table(target_counts, ref_counts)
             pass
@@ -341,7 +389,7 @@ class Window(QMainWindow):
         """
         mainView = QHBoxLayout()
 
-        workspace = QVBoxLayout()
+        self.workspace = QVBoxLayout()
 
         self.visuals = QHBoxLayout()
         self.outputTree = QTreeView()
@@ -353,7 +401,7 @@ class Window(QMainWindow):
         self.outputModel.setHorizontalHeaderLabels(["Output Window"])
         self.outputTree.setUniformRowHeights(True)
         self.visuals.addWidget(self.outputTree, 1)
-        workspace.addLayout(self.visuals)
+        self.workspace.addLayout(self.visuals)
 
         countsBox = QHBoxLayout()
         self.outputLbl = QLabel("Row Count: 0")
@@ -368,7 +416,7 @@ class Window(QMainWindow):
         self.docLbl = QLabel("Documents analyzed: 0")
         self.docLbl.setToolTip("Total number of files analyzed")
         countsBox.addWidget(self.docLbl)
-        workspace.addLayout(countsBox)
+        self.workspace.addLayout(countsBox)
 
         analButtons = QHBoxLayout()
         runButton = QPushButton()
@@ -380,14 +428,14 @@ class Window(QMainWindow):
         self.modeButton.clicked.connect(self.toggleMode)
         analButtons.addWidget(runButton, 3)
         analButtons.addWidget(self.modeButton, 1)
-        workspace.addLayout(analButtons)
+        self.workspace.addLayout(analButtons)
 
         self.runProgress = QLabel("Nothing Running")
         def newTextOutput(s : str):
             self.runProgress.setText(s)
             QApplication.processEvents()
         corpusLibOverwrites.textOutput = newTextOutput
-        workspace.addWidget(self.runProgress, alignment=Qt.AlignmentFlag.AlignRight)
+        self.workspace.addWidget(self.runProgress, alignment=Qt.AlignmentFlag.AlignRight)
 
         #Used for managing files
         barHolder = QHBoxLayout()
@@ -424,7 +472,7 @@ class Window(QMainWindow):
 
         barHolder.addLayout(leftBar)
         mainView.addLayout(barHolder, 1)
-        mainView.addLayout(workspace, 4)
+        mainView.addLayout(self.workspace, 4)
         return mainView
 
     def __init__(self, parent=None):
