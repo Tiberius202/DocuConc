@@ -145,20 +145,29 @@ class Window(QMainWindow):
             selectedFileName = QFileDialog.getSaveFileName(self, 'Save File', filter = "Comma Separated Values (*.csv)")
             self.pd.to_csv(selectedFileName[0])
     def close(self):
-        """Closes seleected files. Removes from all lists and fileDicts"""
+        """Closes selected files. Removes from all lists and fileDicts"""
         fnames = self.openFileW.selectedItems()
+        self.runProgress.setText("Closing "+str(len(fnames))+" files")
         removedFromCurr = False
         if not fnames: return
         for item in fnames:
             fname = item.toolTip()
             del self.openFileDict[fname]
             #update visuals
-            self.currFileW.takeItem(self.currFileW.row(item))
+            addedVersions = self.currFileW.findItems(item.text(), Qt.MatchFlag.MatchExactly)
+            for currItem in addedVersions:
+                if currItem.toolTip() == item.toolTip():
+                    removedFromCurr = True
+                    del self.currFileDict[fname]
+                    #update visuals
+                    self.currFileW.takeItem(self.currFileW.row(currItem))
+            self.openFileW.takeItem(self.openFileW.row(item))
         if removedFromCurr:
             self.openFilesToBeAdded = []
             self.corp = None
             for item in self.currFileDict.keys():
                 self.openFilesToBeAdded.append(item)
+        self.runProgress.setText("Nothing running")
     def add(self):
         """
         Adds file from openFileDict to currFileDict
