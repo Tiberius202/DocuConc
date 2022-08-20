@@ -365,7 +365,7 @@ class Window(QMainWindow):
         self.ViewModeAction(self, "N-gram Frequencies",      self.outputFormat, ViewMode.NGramTable)
         self.ViewModeAction(self, "Collacations",            self.outputFormat, ViewMode.collacTable)
         self.ViewModeAction(self, "KWIC Table",              self.outputFormat, ViewMode.KWICCenter)
-        self.ViewModeAction(self, "Keyness Between Corpora", self.outputFormat, ViewMode.keyNessTable)
+#        self.ViewModeAction(self, "Keyness Between Corpora", self.outputFormat, ViewMode.keyNessTable)
         for action in self.outputFormat.actions():
             action.setCheckable(True)
             action.toggled.connect(action.fn)
