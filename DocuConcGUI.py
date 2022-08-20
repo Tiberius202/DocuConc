@@ -146,7 +146,19 @@ class Window(QMainWindow):
             self.pd.to_csv(selectedFileName[0])
     def close(self):
         """Closes seleected files. Removes from all lists and fileDicts"""
-        print("TODO: most likely replace with close all")
+        fnames = self.openFileW.selectedItems()
+        removedFromCurr = False
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            del self.openFileDict[fname]
+            #update visuals
+            self.currFileW.takeItem(self.currFileW.row(item))
+        if removedFromCurr:
+            self.openFilesToBeAdded = []
+            self.corp = None
+            for item in self.currFileDict.keys():
+                self.openFilesToBeAdded.append(item)
     def add(self):
         """
         Adds file from openFileDict to currFileDict
@@ -161,21 +173,6 @@ class Window(QMainWindow):
                 self.openFilesToBeAdded.append(fname)
                 self.currFileW.addItem(QListWidgetItem(item))
         self.currFileW.sortItems()
-    def extraAdd(self):
-        """
-        TODO: Implement.
-        adds files from open fileDict to currFileDict
-        """
-        fnames = self.openFileW.selectedItems()
-        if not fnames: return
-        for item in fnames:
-            fname = item.toolTip()
-            if  (fname) not in self.extraCurrFileDict:
-                self.extraCurrFileDict.update({fname : None})
-                self.extraOpenFilesToBeAdded.append(fname)
-                #update visuals
-                self.extraCurrFileW.addItem(QListWidgetItem(item))
-        self.extraCurrFileW.sortItems()
     def remove(self):
         """
         Removes files from currFileDict. Undoes Add.
@@ -189,24 +186,10 @@ class Window(QMainWindow):
             del self.currFileDict[fname]
             #update visuals
             self.currFileW.takeItem(self.currFileW.row(item))
+        self.openFilesToBeAdded = []
         self.corp = None
         for item in self.currFileDict.keys():
             self.openFilesToBeAdded.append(item)
-    def extraRemove(self):
-        """
-        TODO: Implement
-        Removes from extraCurrFileW.
-        """
-        fnames = self.extraCurrFileW.selectedItems()
-        if not fnames: return
-        for item in fnames:
-            fname = item.toolTip()
-            del self.extraCurrFileDict[fname]
-            #update visuals
-            self.extraCurrFileW.takeItem(self.extraCurrFileW.row(item))
-        self.corp = None
-        for item in self.extraCurrFileDict.keys():
-            self.extraOpenFilesToBeAdded.append(item)
     def helpContent(self):
         """Logic for launching help goes here..."""
         self.runProgress.setText("<b>Help > Help Content...</b> clicked")
@@ -400,19 +383,6 @@ class Window(QMainWindow):
         #Used for managing files
         barHolder = QHBoxLayout()
 
-        self.extraCurrFileW = QListWidget()
-        self.extraCurrFileW.itemDoubleClicked.connect(self.currListDoubleClick)
-        self.extraCurrFileW.setSelectionMode(self.extraCurrFileW.SelectionMode.ExtendedSelection)
-        extraAddButton = QPushButton()
-        extraAddButton.setText("Add")
-        extraAddButton.clicked.connect(self.extraAdd)
-        extraRemoveButton = QPushButton()
-        extraRemoveButton.setText("Remove")
-        extraRemoveButton.clicked.connect(self.extraRemove)
-        extraAddAndRemoveBox = QHBoxLayout()
-        extraAddAndRemoveBox.addWidget(extraAddButton)
-        extraAddAndRemoveBox.addWidget(extraRemoveButton)
-
         leftBar = QVBoxLayout()
         self.openFileW = QListWidget()
         self.openFileW.itemDoubleClicked.connect(self.openListDoubleClick)
@@ -426,40 +396,9 @@ class Window(QMainWindow):
         closeButton = QPushButton()
         closeButton.setText("Close")
         closeButton.clicked.connect(self.close)
-        addListButton = QPushButton()
-        addListButton.setText("Toggle List 2")
-        addListButton.setCheckable(True)
-        # Functions for adding and removing list 2
-        def deleteItemsOfLayout(layout):
-            if layout is not None:
-                while layout.count():
-                    item = layout.takeAt(0)
-                    widget = item.widget()
-                    if widget is not None:
-                        widget.setParent(None)
-                    else:
-                        deleteItemsOfLayout(item.layout())
-        def boxdelete(self, box):
-            for i in range(self.extraLeftBar.count()):
-                layout_item = self.extraLeftBar.itemAt(i)
-                if layout_item.barHolder() == box:
-                    deleteItemsOfLayout(layout_item.layout())
-                    self.extraLeftBar.removeItem(layout_item)
-                    break
-
-        def toggleList2(b):
-            if b:
-                leftBar.addLayout(extraAddAndRemoveBox)
-                leftBar.addWidget(self.extraCurrFileW)
-            else:
-                leftBar.removeItem(extraAddAndRemoveBox)
-                leftBar.removeWidget(self.extraCurrFileW)
-        #End functions for adding and remocing list 2
-        addListButton.clicked.connect(toggleList2)
         openAndCloseBox = QHBoxLayout()
         openAndCloseBox.addWidget(openButton)
         openAndCloseBox.addWidget(closeButton)
-        openAndCloseBox.addWidget(addListButton)
         leftBar.addLayout(openAndCloseBox)
         leftBar.addWidget(self.openFileW)
         addButton = QPushButton()
@@ -473,11 +412,8 @@ class Window(QMainWindow):
         addAndRemoveBox.addWidget(removeButton)
         leftBar.addLayout(addAndRemoveBox)
         leftBar.addWidget(self.currFileW)
-        leftBar.addLayout(extraAddAndRemoveBox)
-        leftBar.addWidget(self.extraCurrFileW)
 
         barHolder.addLayout(leftBar)
-        extraBarOn = 1
         mainView.addLayout(barHolder, 1)
         mainView.addLayout(workspace, 4)
         return mainView
@@ -502,10 +438,8 @@ class Window(QMainWindow):
         self.docViewFile = None
         #Keeps track of additions to the Current File List. Added when analyzer is run
         self.openFilesToBeAdded = []
-        self.extraOpenFilesToBeAdded = []
         #Functional part of Open File List. Other argument is None 
         self.currFileDict = {}
-        self.extraCurrFileDict = {}
         self.corp = None
         #panda object. What is shown in outputTree when made in _outputFromtokenDict
         self.pd = None
