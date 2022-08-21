@@ -9,8 +9,8 @@ import docuscospacy.corpus_analysis as scoA
 
 #PyQt Front end for gui
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QHeaderView, QTextEdit, QWidget, QFileDialog, QMessageBox, QLineEdit
-from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem, QPainter, QColor, QPen, QBrush
+from PyQt6.QtCore import Qt, QRect, QSortFilterProxyModel
 
 #TMToolkit for managing corpora. Used by docuscospacy
 from tmtoolkit.corpus import Corpus, corpus_num_tokens, corpus_add_files
@@ -41,6 +41,39 @@ class ViewMode(enum.IntEnum):
     KWICCenter = 5
     #A keyness table comparing token frequencies from a taget and a reference corpus
     keyNessTable = 6
+
+class ModeSwitch(QPushButton):
+    """Toggle switch used for POS button"""
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.setCheckable(True)
+        self.setMinimumWidth(66)
+        self.setMinimumHeight(22)
+
+    def paintEvent(self, event):
+        label = "DS" if self.isChecked() else "POS"
+        bg_color = QColor(180,180,180) if self.isChecked() else QColor(180,180,180)
+
+        radius = 10
+        width = 32
+        center = self.rect().center()
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.translate(center)
+        painter.setBrush(QColor(236,236,236))
+
+        pen = QPen(QColor(86,86,86))
+        pen.setWidth(2)
+        painter.setPen(pen)
+
+        painter.drawRoundedRect(QRect(-width, -radius, 2*width, 2*radius), radius, radius)
+        painter.setBrush(QBrush(bg_color))
+        sw_rect = QRect(-radius, -radius, width + radius, 2*radius)
+        if not self.isChecked():
+            sw_rect.moveLeft(-width)
+        painter.drawRoundedRect(sw_rect, radius, radius)
+        painter.drawText(sw_rect, Qt.AlignmentFlag.AlignCenter, label)
 
 class Window(QMainWindow):
     """Window for PyQtGui. Wraps all PyQt functionality"""
@@ -140,17 +173,15 @@ class Window(QMainWindow):
     def toggleMode(self):
         """Used by the modeButton. changes posMode"""
         if self.posMode == "pos":
-            self.modeButton.setText("Docuscope Tags")
             self.modeButton.setToolTip("Click to change to Part of Speech tagging")
             self.posMode = "ds"
         elif self.posMode == "ds":
-            self.modeButton.setText("Part of Speech")
             self.modeButton.setToolTip("Click to change to Docuscope tagging")
             self.posMode = "pos"
         else:
             raise Exception("Error: unknown self.posMode")
         self._outputFromtokenDict()
-        self.runProgress("Done")
+        self.runProgress.setText("Done")
 
     def openFile(self):
         """Opens files to the openFileDict and openFileW"""
@@ -268,6 +299,7 @@ class Window(QMainWindow):
         Initializes the output tree according to self.viewmode
         Used in RunSpacyModel and after switching between part of speech and docuscope modes
         """
+        if self.corp == None: return
         self.outputFormat.actions()[self.viewMode].setChecked(True)
         self.pd = None
         if   self.viewMode == ViewMode.freqTable:
@@ -396,13 +428,30 @@ class Window(QMainWindow):
         self.outputTree = QTreeView()
         self.outputModel = QStandardItemModel(None)
         self.outputModel.setSortRole(Qt.ItemDataRole.UserRole)
-        self.outputTree.setModel(self.outputModel)
-        self.outputTree.setColumnWidth(0, 200)
-        header = QHeaderView(Qt.Orientation.Horizontal)
         self.outputModel.setHorizontalHeaderLabels(["Output Window"])
+        self.proxyModel = QSortFilterProxyModel()
+        self.proxyModel.setSourceModel(self.outputModel)
+        self.outputTree.setModel(self.proxyModel)
+        self.outputTree.setColumnWidth(0, 200)
         self.outputTree.setUniformRowHeights(True)
         self.visuals.addWidget(self.outputTree, 1)
         self.workspace.addLayout(self.visuals)
+
+        filterBox = QHBoxLayout()
+        filterBox.addWidget(QLabel("Filter: "))
+        self.searchbar = QLineEdit()
+        self.searchbar.textChanged.connect(self.proxyModel.setFilterFixedString)
+        filterBox.addWidget(self.searchbar, 3)
+        filterBox.addWidget(QLabel("Column: "))
+        self.filterColumnSelector = QLineEdit("1")
+        self.filterColumnSelector.setInputMask("D")
+        def filterGivenStr(s):
+            if s != "":
+                self.proxyModel.setFilterKeyColumn(int(s)-1)
+        filterGivenStr(self.filterColumnSelector.text())
+        self.filterColumnSelector.textChanged.connect(filterGivenStr)
+        filterBox.addWidget(self.filterColumnSelector)
+        self.workspace.addLayout(filterBox)
 
         countsBox = QHBoxLayout()
         self.outputLbl = QLabel("Row Count: 0")
@@ -423,8 +472,7 @@ class Window(QMainWindow):
         runButton = QPushButton()
         runButton.setText("Run analyzer")
         runButton.clicked.connect(self.runSpacyModel)
-        self.modeButton = QPushButton()
-        self.modeButton.setText("Part of Speech")
+        self.modeButton = ModeSwitch()
         self.modeButton.setToolTip("Click to change to Docuscope tagging")
         self.modeButton.clicked.connect(self.toggleMode)
         analButtons.addWidget(runButton, 3)
