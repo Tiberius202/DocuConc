@@ -150,6 +150,7 @@ class Window(QMainWindow):
         else:
             raise Exception("Error: unknown self.posMode")
         self._outputFromtokenDict()
+        self.runProgress("Done")
 
     def openFile(self):
         """Opens files to the openFileDict and openFileW"""
