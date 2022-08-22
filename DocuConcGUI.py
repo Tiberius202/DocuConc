@@ -1,3 +1,4 @@
+from ast import keyword
 import sys
 import spacy
 import os
@@ -7,9 +8,9 @@ import enum
 import docuscospacy.corpus_analysis as scoA
 
 #PyQt Front end for gui
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QHeaderView, QTextEdit, QWidget, QFileDialog, QMessageBox
-from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QHeaderView, QTextEdit, QWidget, QFileDialog, QMessageBox, QLineEdit
+from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem, QPainter, QColor, QPen, QBrush
+from PyQt6.QtCore import Qt, QRect, QSortFilterProxyModel
 
 #TMToolkit for managing corpora. Used by docuscospacy
 from tmtoolkit.corpus import Corpus, corpus_num_tokens, corpus_add_files
@@ -41,11 +42,62 @@ class ViewMode(enum.IntEnum):
     #A keyness table comparing token frequencies from a taget and a reference corpus
     keyNessTable = 6
 
+class ModeSwitch(QPushButton):
+    """Toggle switch used for POS button"""
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.setCheckable(True)
+        self.setMinimumWidth(66)
+        self.setMinimumHeight(22)
+
+    def paintEvent(self, event):
+        label = "DS" if self.isChecked() else "POS"
+        bg_color = QColor(180,180,180) if self.isChecked() else QColor(180,180,180)
+
+        radius = 10
+        width = 32
+        center = self.rect().center()
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.translate(center)
+        painter.setBrush(QColor(236,236,236))
+
+        pen = QPen(QColor(86,86,86))
+        pen.setWidth(2)
+        painter.setPen(pen)
+
+        painter.drawRoundedRect(QRect(-width, -radius, 2*width, 2*radius), radius, radius)
+        painter.setBrush(QBrush(bg_color))
+        sw_rect = QRect(-radius, -radius, width + radius, 2*radius)
+        if not self.isChecked():
+            sw_rect.moveLeft(-width)
+        painter.drawRoundedRect(sw_rect, radius, radius)
+        painter.drawText(sw_rect, Qt.AlignmentFlag.AlignCenter, label)
+
 class Window(QMainWindow):
     """Window for PyQtGui. Wraps all PyQt functionality"""
     def setViewMode(self, mode : ViewMode):
         """Used to change the viewMode in other functions"""
         self.viewMode = mode
+
+    def openKeyword(self):
+        """Opens the keyword input and ranges"""
+        keywordBar = QHBoxLayout()
+        self.keyword = QLineEdit("Keyword")
+        self.ng_span = QLineEdit("3")
+        self.ng_span.setInputMask("D")
+        keywordBar.addWidget(self.keyword, 4)
+        keywordBar.addWidget(self.ng_span, 1)
+        self.workspace.insertLayout(2, keywordBar)
+
+    def closeKeyword(self):
+        """Closes the keyword input and ranges"""
+        bar = self.workspace.takeAt(2)
+        while bar.count() > 0:
+            item = bar.takeAt(0)
+            widget = item.widget()
+            widget.deleteLater()
 
     class ViewModeAction(QAction):
         """Class used to make many similiar viewmode functions for updating the variable"""
@@ -54,7 +106,20 @@ class Window(QMainWindow):
             self.win = win
             self.mode = mode
         def fn (self, checked : bool) -> None:
-            self.win.setViewMode(self.mode)
+            if checked:
+                def needsKeyword(m):
+                    return m == ViewMode.collacTable or m == ViewMode.KWICCenter
+                def needsSpan(m):
+                    return m == ViewMode.NGramTable
+                if       needsKeyword(self.mode) and not needsKeyword(self.win.viewMode):
+                    self.win.openKeyword()
+                elif not needsKeyword(self.mode) and     needsKeyword(self.win.viewMode):
+                    self.win.closeKeyword()
+                if       needsSpan(self.mode) and not needsSpan(self.win.viewMode):
+                    self.win.openKeyword()
+                elif not needsSpan(self.mode) and     needsSpan(self.win.viewMode):
+                    self.win.closeKeyword()
+                self.win.setViewMode(self.mode)
 
     def runSpacyModel(self):
         """
@@ -108,16 +173,15 @@ class Window(QMainWindow):
     def toggleMode(self):
         """Used by the modeButton. changes posMode"""
         if self.posMode == "pos":
-            self.modeButton.setText("Docuscope Tags")
             self.modeButton.setToolTip("Click to change to Part of Speech tagging")
             self.posMode = "ds"
         elif self.posMode == "ds":
-            self.modeButton.setText("Part of Speech")
             self.modeButton.setToolTip("Click to change to Docuscope tagging")
             self.posMode = "pos"
         else:
             raise Exception("Error: unknown self.posMode")
         self._outputFromtokenDict()
+        self.runProgress.setText("Done")
 
     def openFile(self):
         """Opens files to the openFileDict and openFileW"""
@@ -145,8 +209,29 @@ class Window(QMainWindow):
             selectedFileName = QFileDialog.getSaveFileName(self, 'Save File', filter = "Comma Separated Values (*.csv)")
             self.pd.to_csv(selectedFileName[0])
     def close(self):
-        """Closes seleected files. Removes from all lists and fileDicts"""
-        print("TODO: most likely replace with close all")
+        """Closes selected files. Removes from all lists and fileDicts"""
+        fnames = self.openFileW.selectedItems()
+        self.runProgress.setText("Closing "+str(len(fnames))+" files")
+        removedFromCurr = False
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            del self.openFileDict[fname]
+            #update visuals
+            addedVersions = self.currFileW.findItems(item.text(), Qt.MatchFlag.MatchExactly)
+            for currItem in addedVersions:
+                if currItem.toolTip() == item.toolTip():
+                    removedFromCurr = True
+                    del self.currFileDict[fname]
+                    #update visuals
+                    self.currFileW.takeItem(self.currFileW.row(currItem))
+            self.openFileW.takeItem(self.openFileW.row(item))
+        if removedFromCurr:
+            self.openFilesToBeAdded = []
+            self.corp = None
+            for item in self.currFileDict.keys():
+                self.openFilesToBeAdded.append(item)
+        self.runProgress.setText("Nothing running")
     def add(self):
         """
         Adds file from openFileDict to currFileDict
@@ -161,21 +246,6 @@ class Window(QMainWindow):
                 self.openFilesToBeAdded.append(fname)
                 self.currFileW.addItem(QListWidgetItem(item))
         self.currFileW.sortItems()
-    def extraAdd(self):
-        """
-        TODO: Implement.
-        adds files from open fileDict to currFileDict
-        """
-        fnames = self.openFileW.selectedItems()
-        if not fnames: return
-        for item in fnames:
-            fname = item.toolTip()
-            if  (fname) not in self.extraCurrFileDict:
-                self.extraCurrFileDict.update({fname : None})
-                self.extraOpenFilesToBeAdded.append(fname)
-                #update visuals
-                self.extraCurrFileW.addItem(QListWidgetItem(item))
-        self.extraCurrFileW.sortItems()
     def remove(self):
         """
         Removes files from currFileDict. Undoes Add.
@@ -189,24 +259,10 @@ class Window(QMainWindow):
             del self.currFileDict[fname]
             #update visuals
             self.currFileW.takeItem(self.currFileW.row(item))
+        self.openFilesToBeAdded = []
         self.corp = None
         for item in self.currFileDict.keys():
             self.openFilesToBeAdded.append(item)
-    def extraRemove(self):
-        """
-        TODO: Implement
-        Removes from extraCurrFileW.
-        """
-        fnames = self.extraCurrFileW.selectedItems()
-        if not fnames: return
-        for item in fnames:
-            fname = item.toolTip()
-            del self.extraCurrFileDict[fname]
-            #update visuals
-            self.extraCurrFileW.takeItem(self.extraCurrFileW.row(item))
-        self.corp = None
-        for item in self.extraCurrFileDict.keys():
-            self.extraOpenFilesToBeAdded.append(item)
     def helpContent(self):
         """Logic for launching help goes here..."""
         self.runProgress.setText("<b>Help > Help Content...</b> clicked")
@@ -262,10 +318,8 @@ class Window(QMainWindow):
         Initializes the output tree according to self.viewmode
         Used in RunSpacyModel and after switching between part of speech and docuscope modes
         """
+        if self.corp == None: return
         self.outputFormat.actions()[self.viewMode].setChecked(True)
-        #TODO Define These
-        ng_span = 3
-        node_word = "analyze"
         self.pd = None
         if   self.viewMode == ViewMode.freqTable:
             self.pd = scoA.frequency_table(self.tokenDict, self.non_punct, self.posMode)
@@ -274,11 +328,30 @@ class Window(QMainWindow):
         elif self.viewMode == ViewMode.tagsDTM:
             self.pd = scoA.tags_dtm(self.tokenDict, self.posMode)
         elif self.viewMode == ViewMode.NGramTable:
-            self.pd = scoA.ngrams_table(self.tokenDict, ng_span, self.non_punct, self.posMode)
+            span = int(self.ng_span.text())
+            if span < 2:
+                msgBox = QMessageBox(self)
+                msgBox.setText("Span must be between 2 and 5 inclusive")
+                msgBox.setInformativeText("Rerun the analyzer with correct span between 2 and 5 inclusive.\nAnalyzer has been run with span of 2")
+                msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                msgBox.setDefaultButton(QMessageBox.StandardButton.Ok)
+                msgBox.exec()
+                span = 2
+                self.ng_span.setText(str(span))
+            if span > 5:
+                msgBox = QMessageBox(self)
+                msgBox.setText("Span must be between 2 and 5 inclusive")
+                msgBox.setInformativeText("Rerun the analyzer with correct span between 2 and 5 inclusive.\nAnalyzer has been run with span of 5")
+                msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+                msgBox.setDefaultButton(QMessageBox.StandardButton.Ok)
+                msgBox.exec()
+                span = 5
+                self.ng_span.setText(str(span))
+            self.pd = scoA.ngrams_table(self.tokenDict, span, self.non_punct, self.posMode)
         elif self.viewMode == ViewMode.collacTable:
-            self.pd = scoA.coll_table(self.tokenDict, node_word, count_by=self.posMode)
+            self.pd = scoA.coll_table(self.tokenDict, self.keyword.text(), count_by=self.posMode)
         elif self.viewMode == ViewMode.KWICCenter:
-            self.pd = scoA.kwic_center_node(self.corp, node_word)
+            self.pd = scoA.kwic_center_node(self.corp, self.keyword.text())
         elif self.viewMode == ViewMode.keyNessTable:
             #TODO: pd = scoA.keyness_table(target_counts, ref_counts)
             pass
@@ -344,7 +417,7 @@ class Window(QMainWindow):
         self.ViewModeAction(self, "N-gram Frequencies",      self.outputFormat, ViewMode.NGramTable)
         self.ViewModeAction(self, "Collacations",            self.outputFormat, ViewMode.collacTable)
         self.ViewModeAction(self, "KWIC Table",              self.outputFormat, ViewMode.KWICCenter)
-        self.ViewModeAction(self, "Keyness Between Corpora", self.outputFormat, ViewMode.keyNessTable)
+#        self.ViewModeAction(self, "Keyness Between Corpora", self.outputFormat, ViewMode.keyNessTable)
         for action in self.outputFormat.actions():
             action.setCheckable(True)
             action.toggled.connect(action.fn)
@@ -368,19 +441,36 @@ class Window(QMainWindow):
         """
         mainView = QHBoxLayout()
 
-        workspace = QVBoxLayout()
+        self.workspace = QVBoxLayout()
 
         self.visuals = QHBoxLayout()
         self.outputTree = QTreeView()
         self.outputModel = QStandardItemModel(None)
         self.outputModel.setSortRole(Qt.ItemDataRole.UserRole)
-        self.outputTree.setModel(self.outputModel)
-        self.outputTree.setColumnWidth(0, 200)
-        header = QHeaderView(Qt.Orientation.Horizontal)
         self.outputModel.setHorizontalHeaderLabels(["Output Window"])
+        self.proxyModel = QSortFilterProxyModel()
+        self.proxyModel.setSourceModel(self.outputModel)
+        self.outputTree.setModel(self.proxyModel)
+        self.outputTree.setColumnWidth(0, 200)
         self.outputTree.setUniformRowHeights(True)
         self.visuals.addWidget(self.outputTree, 1)
-        workspace.addLayout(self.visuals)
+        self.workspace.addLayout(self.visuals)
+
+        filterBox = QHBoxLayout()
+        filterBox.addWidget(QLabel("Filter: "))
+        self.searchbar = QLineEdit()
+        self.searchbar.textChanged.connect(self.proxyModel.setFilterFixedString)
+        filterBox.addWidget(self.searchbar, 3)
+        filterBox.addWidget(QLabel("Column: "))
+        self.filterColumnSelector = QLineEdit("1")
+        self.filterColumnSelector.setInputMask("D")
+        def filterGivenStr(s):
+            if s != "":
+                self.proxyModel.setFilterKeyColumn(int(s)-1)
+        filterGivenStr(self.filterColumnSelector.text())
+        self.filterColumnSelector.textChanged.connect(filterGivenStr)
+        filterBox.addWidget(self.filterColumnSelector)
+        self.workspace.addLayout(filterBox)
 
         countsBox = QHBoxLayout()
         self.outputLbl = QLabel("Row Count: 0")
@@ -395,53 +485,28 @@ class Window(QMainWindow):
         self.docLbl = QLabel("Documents analyzed: 0")
         self.docLbl.setToolTip("Total number of files analyzed")
         countsBox.addWidget(self.docLbl)
-        workspace.addLayout(countsBox)
+        self.workspace.addLayout(countsBox)
 
         analButtons = QHBoxLayout()
         runButton = QPushButton()
         runButton.setText("Run analyzer")
         runButton.clicked.connect(self.runSpacyModel)
-        self.modeButton = QPushButton()
-        self.modeButton.setText("Part of Speech")
+        self.modeButton = ModeSwitch()
         self.modeButton.setToolTip("Click to change to Docuscope tagging")
         self.modeButton.clicked.connect(self.toggleMode)
         analButtons.addWidget(runButton, 3)
         analButtons.addWidget(self.modeButton, 1)
-        workspace.addLayout(analButtons)
+        self.workspace.addLayout(analButtons)
 
         self.runProgress = QLabel("Nothing Running")
         def newTextOutput(s : str):
             self.runProgress.setText(s)
             QApplication.processEvents()
         corpusLibOverwrites.textOutput = newTextOutput
-        workspace.addWidget(self.runProgress, alignment=Qt.AlignmentFlag.AlignRight)
+        self.workspace.addWidget(self.runProgress, alignment=Qt.AlignmentFlag.AlignRight)
 
         #Used for managing files
         barHolder = QHBoxLayout()
-
-        """TODO: extraLeftBar = QVBoxLayout()
-        self.extraOpenFileW = QListWidget()
-        self.extraOpenFileW.itemDoubleClicked.connect(self.openListDoubleClick)
-        self.extraOpenFileW.setSelectionMode(self.extraOpenFileW.SelectionMode.ExtendedSelection)"""
-        self.extraCurrFileW = QListWidget()
-        self.extraCurrFileW.itemDoubleClicked.connect(self.currListDoubleClick)
-        self.extraCurrFileW.setSelectionMode(self.extraCurrFileW.SelectionMode.ExtendedSelection)
-        """TODO: extraOpenButton = QPushButton()
-        extraOpenButton.setText("Open")
-        extraOpenButton.clicked.connect(self.openFile)
-        extraCloseButton = QPushButton()
-        extraCloseButton.setText("Close")
-        extraCloseButton.clicked.connect(self.close)
-        extraOpenAndCloseBox = QHBoxLayout()
-        extraOpenAndCloseBox.addWidget(extraOpenButton)
-        extraOpenAndCloseBox.addWidget(extraCloseButton)
-        extraLeftBar.addLayout(extraOpenAndCloseBox)
-        extraLeftBar.addWidget(self.extraOpenFileW)"""
-        """extraAddAndRemoveBox = QHBoxLayout()
-        extraAddAndRemoveBox.addWidget(extraAddButton)
-        extraAddAndRemoveBox.addWidget(extraRemoveButton)
-        TODO: extraLeftBar.addLayout(extraAddAndRemoveBox)
-        extraLeftBar.addWidget(self.extraCurrFileW)"""
 
         leftBar = QVBoxLayout()
         self.openFileW = QListWidget()
@@ -456,6 +521,7 @@ class Window(QMainWindow):
         closeButton = QPushButton()
         closeButton.setText("Close")
         closeButton.clicked.connect(self.close)
+
         addListButton = QPushButton()
         addListButton.setText("Toggle List 2")
         addListButton.setCheckable(True)
@@ -489,10 +555,10 @@ class Window(QMainWindow):
                 closeExtraBar()
         #End functions for adding and remocing list 2
         addListButton.clicked.connect(toggleExtraFileW)
+
         openAndCloseBox = QHBoxLayout()
         openAndCloseBox.addWidget(openButton)
         openAndCloseBox.addWidget(closeButton)
-        openAndCloseBox.addWidget(addListButton)
         leftBar.addLayout(openAndCloseBox)
         leftBar.addWidget(self.openFileW)
         addButton = QPushButton()
@@ -507,21 +573,10 @@ class Window(QMainWindow):
         leftBar.addLayout(addAndRemoveBox)
         leftBar.addWidget(self.currFileW)
 
-        """TODO: extraOpenAndCloseBox = QHBoxLayout()
-        extraOpenAndCloseBox.addWidget(openButton)
-        extraOpenAndCloseBox.addWidget(closeButton)
-        extraLeftBar.addLayout(extraOpenAndCloseBox)
-        extraLeftBar.addWidget(self.openFileW)
-        extraAddAndRemoveBox = QHBoxLayout()
-        extraAddAndRemoveBox.addWidget(addButton)
-        extraAddAndRemoveBox.addWidget(removeButton)
-        extraLeftBar.addLayout(extraAddAndRemoveBox)
-        extraLeftBar.addWidget(self.currFileW)"""
-
         barHolder.addLayout(leftBar)
-        """TODO: barHolder.addLayout(extraLeftBar)"""
+
         mainView.addLayout(barHolder, 1)
-        mainView.addLayout(workspace, 4)
+        mainView.addLayout(self.workspace, 4)
         return mainView
 
     def __init__(self, parent=None):
@@ -536,7 +591,7 @@ class Window(QMainWindow):
         self.viewMode = ViewMode.freqTable
         self._createMenuBar()
         #initialize model
-        self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "model-new"))
+        self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "spacy-model"))
         #Functionality
         #Functional part of Open File List. Other argument is None 
         self.openFileDict = {}
@@ -544,10 +599,8 @@ class Window(QMainWindow):
         self.docViewFile = None
         #Keeps track of additions to the Current File List. Added when analyzer is run
         self.openFilesToBeAdded = []
-        self.extraOpenFilesToBeAdded = []
         #Functional part of Open File List. Other argument is None 
         self.currFileDict = {}
-        self.extraCurrFileDict = {}
         self.corp = None
         #panda object. What is shown in outputTree when made in _outputFromtokenDict
         self.pd = None
