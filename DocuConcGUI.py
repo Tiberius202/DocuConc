@@ -1,4 +1,5 @@
 from ast import keyword
+from statistics import mode
 import sys
 import spacy
 import os
@@ -8,7 +9,7 @@ import enum
 import docuscospacy.corpus_analysis as scoA
 
 #PyQt Front end for gui
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QHeaderView, QTextEdit, QWidget, QFileDialog, QMessageBox, QLineEdit
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QTextEdit, QWidget, QFileDialog, QMessageBox, QLineEdit, QButtonGroup
 from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem, QPainter, QColor, QPen, QBrush
 from PyQt6.QtCore import Qt, QRect, QSortFilterProxyModel
 
@@ -99,10 +100,10 @@ class Window(QMainWindow):
             widget = item.widget()
             widget.deleteLater()
 
-    class ViewModeAction(QAction):
+    class ViewModeAction(QPushButton):
         """Class used to make many similiar viewmode functions for updating the variable"""
-        def __init__(self, win, text : str, parent, mode : ViewMode) -> None:
-            super().__init__(text, parent)
+        def __init__(self, win, text : str, mode : ViewMode) -> None:
+            super().__init__(text)
             self.win = win
             self.mode = mode
         def fn (self, checked : bool) -> None:
@@ -353,7 +354,7 @@ class Window(QMainWindow):
         Used in RunSpacyModel and after switching between part of speech and docuscope modes
         """
         if self.corp == None: return
-        self.outputFormat.actions()[self.viewMode].setChecked(True)
+        self.outputFormat.buttons()[self.viewMode].setChecked(True)
         self.pd = None
         if   self.viewMode == ViewMode.freqTable:
             self.pd = scoA.frequency_table(self.tokenDict, self.non_punct, self.posMode)
@@ -442,23 +443,6 @@ class Window(QMainWindow):
         self.documentViewAction.setCheckable(True)
         self.documentViewAction.toggled.connect(self.toggleTextEditor)
         viewMenu.addAction(self.documentViewAction)
-        viewMenu.addSection("Output Format")
-        self.outputFormat = QActionGroup(viewMenu)
-        #Makes the actions in a row. Need that first self arguement so class know which object to update
-        self.ViewModeAction(self, "Token Frequency",         self.outputFormat, ViewMode.freqTable)
-        self.ViewModeAction(self, "Tag Frequency",           self.outputFormat, ViewMode.tagsTable)
-        self.ViewModeAction(self, "Document Term Matrix",    self.outputFormat, ViewMode.tagsDTM)
-        self.ViewModeAction(self, "N-gram Frequencies",      self.outputFormat, ViewMode.NGramTable)
-        self.ViewModeAction(self, "Collacations",            self.outputFormat, ViewMode.collacTable)
-        self.ViewModeAction(self, "KWIC Table",              self.outputFormat, ViewMode.KWICCenter)
-#        self.ViewModeAction(self, "Keyness Between Corpora", self.outputFormat, ViewMode.keyNessTable)
-        for action in self.outputFormat.actions():
-            action.setCheckable(True)
-            action.toggled.connect(action.fn)
-            viewMenu.addAction(action)
-        self.viewMode = ViewMode.freqTable
-        self.outputFormat.setExclusive(True)
-        self.outputFormat.actions()[self.viewMode].setChecked(True)
 
         settingsMenu = menuBar.addMenu("Settings")
         helpMenu = menuBar.addMenu("Help")
@@ -476,6 +460,26 @@ class Window(QMainWindow):
         mainView = QHBoxLayout()
 
         self.workspace = QVBoxLayout()
+
+        modeBox = QHBoxLayout()
+        self.outputFormat = QButtonGroup()
+        #Makes the actions in a row. Need that first self arguement so class know which object to update
+        modeBox.addWidget(QPushButton("Token Frequency"))
+        modeBox.addWidget(self.ViewModeAction(self, "Tag Frequency",           ViewMode.tagsTable))
+        modeBox.addWidget(self.ViewModeAction(self, "Document Term Matrix",    ViewMode.tagsDTM))
+        modeBox.addWidget(self.ViewModeAction(self, "N-gram Frequencies",      ViewMode.NGramTable))
+        modeBox.addWidget(self.ViewModeAction(self, "Collacations",            ViewMode.collacTable))
+        modeBox.addWidget(self.ViewModeAction(self, "KWIC Table",              ViewMode.KWICCenter))
+        modeBox.addWidget(self.ViewModeAction(self, "Keyness Between Corpora", ViewMode.keyNessTable))
+        for i in range(modeBox.count()):
+            action = modeBox.itemAt(i).widget()
+            action.setCheckable(True)
+#TODO            action.toggled.connect(action.fn)
+            self.outputFormat.addButton(action, i)
+        self.viewMode = ViewMode.freqTable
+        self.outputFormat.setExclusive(True)
+        self.outputFormat.buttons()[self.viewMode].setChecked(True)
+        self.workspace.addLayout(modeBox)
 
         self.visuals = QHBoxLayout()
         self.outputTree = QTreeView()
@@ -557,7 +561,7 @@ class Window(QMainWindow):
         closeButton.setText("Close")
         closeButton.clicked.connect(self.close)
         self.addListButton = QPushButton()
-        self.addListButton.setText("Toggle List 2")
+        self.addListButton.setText("Toggle Ref. Corpus")
         self.addListButton.setCheckable(True)
         # Functions for adding and removing list 2
         def openExtraBar():
@@ -568,6 +572,7 @@ class Window(QMainWindow):
                 extraRemoveButton.setText("Remove")
                 extraRemoveButton.clicked.connect(self.extraRemove)
                 extraAddAndRemoveBox = QHBoxLayout()
+                extraAddAndRemoveBox.addWidget(QLabel("Reference corpus:"))
                 extraAddAndRemoveBox.addWidget(extraAddButton)
                 extraAddAndRemoveBox.addWidget(extraRemoveButton)
                 self.extraCurrFileW = QListWidget()
@@ -604,6 +609,7 @@ class Window(QMainWindow):
         removeButton.setText("Remove")
         removeButton.clicked.connect(self.remove)
         addAndRemoveBox = QHBoxLayout()
+        addAndRemoveBox.addWidget(QLabel("Target corpus:"), 0)
         addAndRemoveBox.addWidget(addButton)
         addAndRemoveBox.addWidget(removeButton)
         leftBar.addLayout(addAndRemoveBox)
