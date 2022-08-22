@@ -437,12 +437,6 @@ class Window(QMainWindow):
         extraOpenAndCloseBox.addWidget(extraCloseButton)
         extraLeftBar.addLayout(extraOpenAndCloseBox)
         extraLeftBar.addWidget(self.extraOpenFileW)"""
-        extraAddButton = QPushButton()
-        extraAddButton.setText("Add")
-        extraAddButton.clicked.connect(self.extraAdd)
-        extraRemoveButton = QPushButton()
-        extraRemoveButton.setText("Remove")
-        extraRemoveButton.clicked.connect(self.extraRemove)
         """extraAddAndRemoveBox = QHBoxLayout()
         extraAddAndRemoveBox.addWidget(extraAddButton)
         extraAddAndRemoveBox.addWidget(extraRemoveButton)
@@ -466,28 +460,19 @@ class Window(QMainWindow):
         addListButton.setText("Toggle List 2")
         addListButton.setCheckable(True)
         # Functions for adding and removing list 2
-        def deleteItemsOfLayout(layout):
-            if layout is not None:
-                while layout.count():
-                    item = layout.takeAt(0)
-                    widget = item.widget()
-                    if widget is not None:
-                        widget.setParent(None)
-                    else:
-                        deleteItemsOfLayout(item.layout())
-        def boxdelete(self, box):
-            for i in range(self.extraLeftBar.count()):
-                layout_item = self.extraLeftBar.itemAt(i)
-                if layout_item.barHolder() == box:
-                    deleteItemsOfLayout(layout_item.layout())
-                    self.extraLeftBar.removeItem(layout_item)
-                    break
-
         def openExtraBar():
+                extraAddButton = QPushButton()
+                extraAddButton.setText("Add")
+                extraAddButton.clicked.connect(self.extraAdd)
+                extraRemoveButton = QPushButton()
+                extraRemoveButton.setText("Remove")
+                extraRemoveButton.clicked.connect(self.extraRemove)
                 extraAddAndRemoveBox = QHBoxLayout()
                 extraAddAndRemoveBox.addWidget(extraAddButton)
                 extraAddAndRemoveBox.addWidget(extraRemoveButton)
-                leftBar.insertLayout(4, extraAddAndRemoveBox)
+                self.extraCurrFileW = QListWidget()
+                self.extraCurrFileW.setSelectionMode(self.extraCurrFileW.SelectionMode.ExtendedSelection)
+                leftBar.addLayout(extraAddAndRemoveBox)
                 leftBar.addWidget(self.extraCurrFileW)
         def closeExtraBar():
                 bar = leftBar.takeAt(4)
@@ -496,8 +481,14 @@ class Window(QMainWindow):
                     widget = item.widget()
                     widget.deleteLater()
                 leftBar.removeWidget(self.extraCurrFileW)
+                self.extraCurrFileW.deleteLater()
+        def toggleExtraFileW(b):
+            if b:
+                openExtraBar()
+            else:
+                closeExtraBar()
         #End functions for adding and remocing list 2
-        addListButton.clicked.connect(openExtraBar)
+        addListButton.clicked.connect(toggleExtraFileW)
         openAndCloseBox = QHBoxLayout()
         openAndCloseBox.addWidget(openButton)
         openAndCloseBox.addWidget(closeButton)
