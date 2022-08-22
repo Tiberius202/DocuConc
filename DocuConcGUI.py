@@ -213,11 +213,12 @@ class Window(QMainWindow):
         fnames = self.openFileW.selectedItems()
         self.runProgress.setText("Closing "+str(len(fnames))+" files")
         removedFromCurr = False
+        removedFromExtra = False
         if not fnames: return
         for item in fnames:
             fname = item.toolTip()
             del self.openFileDict[fname]
-            #update visuals
+            #Remove from currFile list as well
             addedVersions = self.currFileW.findItems(item.text(), Qt.MatchFlag.MatchExactly)
             for currItem in addedVersions:
                 if currItem.toolTip() == item.toolTip():
@@ -225,6 +226,16 @@ class Window(QMainWindow):
                     del self.currFileDict[fname]
                     #update visuals
                     self.currFileW.takeItem(self.currFileW.row(currItem))
+            #Remove from extraurrFile if it exists
+            if self.addListButton.isChecked():
+                addedVersions = self.extraCurrFileW.findItems(item.text(), Qt.MatchFlag.MatchExactly)
+                for currItem in addedVersions:
+                    if currItem.toolTip() == item.toolTip():
+                        removedFromExtra = True
+                        del self.extraCurrFileDict[fname]
+                        #update visuals
+                        self.extraCurrFileW.takeItem(self.extraCurrFileW.row(currItem))
+            #Update openFileW
             self.openFileW.takeItem(self.openFileW.row(item))
         if removedFromCurr:
             self.openFilesToBeAdded = []
@@ -246,10 +257,22 @@ class Window(QMainWindow):
                 self.openFilesToBeAdded.append(fname)
                 self.currFileW.addItem(QListWidgetItem(item))
         self.currFileW.sortItems()
+    def extraAdd(self):
+        """
+        Adds file from openFileDict to extraCurrFileDict
+        """
+        fnames = self.openFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            if  (fname) not in self.extraCurrFileDict:
+                self.extraCurrFileDict.update({fname : None})
+                self.extraCurrFileW.addItem(QListWidgetItem(item))
+        self.extraCurrFileW.sortItems()
     def remove(self):
         """
         Removes files from currFileDict. Undoes Add.
-        Refreshes the currFileDict so that a new corpus is made. 
+        Refreshes the openFilesToBeAdded so that a new corpus is made. 
         Tmtoolkit does not have remove from files, but does have add.
         """
         fnames = self.currFileW.selectedItems()
@@ -263,6 +286,17 @@ class Window(QMainWindow):
         self.corp = None
         for item in self.currFileDict.keys():
             self.openFilesToBeAdded.append(item)
+    def extraRemove(self):
+        """
+        Removes files from extraCurrFileDict. Undoes extraAdd.
+        """
+        fnames = self.extraCurrFileW.selectedItems()
+        if not fnames: return
+        for item in fnames:
+            fname = item.toolTip()
+            del self.extraCurrFileDict[fname]
+            #update visuals
+            self.extraCurrFileW.takeItem(self.extraCurrFileW.row(item))
     def helpContent(self):
         """Logic for launching help goes here..."""
         self.runProgress.setText("<b>Help > Help Content...</b> clicked")
@@ -515,16 +549,16 @@ class Window(QMainWindow):
         self.currFileW = QListWidget()
         self.currFileW.itemDoubleClicked.connect(self.currListDoubleClick)
         self.currFileW.setSelectionMode(self.currFileW.SelectionMode.ExtendedSelection)
+
         openButton = QPushButton()
         openButton.setText("Open")
         openButton.clicked.connect(self.openFile)
         closeButton = QPushButton()
         closeButton.setText("Close")
         closeButton.clicked.connect(self.close)
-
-        addListButton = QPushButton()
-        addListButton.setText("Toggle List 2")
-        addListButton.setCheckable(True)
+        self.addListButton = QPushButton()
+        self.addListButton.setText("Toggle List 2")
+        self.addListButton.setCheckable(True)
         # Functions for adding and removing list 2
         def openExtraBar():
                 extraAddButton = QPushButton()
@@ -538,6 +572,7 @@ class Window(QMainWindow):
                 extraAddAndRemoveBox.addWidget(extraRemoveButton)
                 self.extraCurrFileW = QListWidget()
                 self.extraCurrFileW.setSelectionMode(self.extraCurrFileW.SelectionMode.ExtendedSelection)
+                self.extraCurrFileDict = {}
                 leftBar.addLayout(extraAddAndRemoveBox)
                 leftBar.addWidget(self.extraCurrFileW)
         def closeExtraBar():
@@ -554,11 +589,12 @@ class Window(QMainWindow):
             else:
                 closeExtraBar()
         #End functions for adding and remocing list 2
-        addListButton.clicked.connect(toggleExtraFileW)
-
+        self.addListButton.clicked.connect(toggleExtraFileW)
         openAndCloseBox = QHBoxLayout()
         openAndCloseBox.addWidget(openButton)
         openAndCloseBox.addWidget(closeButton)
+        openAndCloseBox.addWidget(self.addListButton)
+
         leftBar.addLayout(openAndCloseBox)
         leftBar.addWidget(self.openFileW)
         addButton = QPushButton()
