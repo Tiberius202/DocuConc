@@ -269,6 +269,25 @@ class Window(QMainWindow):
     def about(self):
         """Logic for showing an about dialog content goes here..."""
         self.runProgress.setText("<b>Help > About...</b> clicked")
+
+    def openKeyword(self):
+        """Opens the keyword input and ranges"""
+        keywordBar = QHBoxLayout()
+        self.keyword = QLineEdit("Keyword")
+        self.ng_span = QLineEdit("3")
+        self.ng_span.setInputMask("D")
+        keywordBar.addWidget(self.keyword, 4)
+        keywordBar.addWidget(self.ng_span, 1)
+        self.workspace.insertLayout(2, keywordBar)
+
+    def closeKeyword(self):
+        """Closes the keyword input and ranges"""
+        bar = self.workspace.takeAt(2)
+        while bar.count() > 0:
+            item = bar.takeAt(0)
+            widget = item.widget()
+            widget.deleteLater()
+
     def openListDoubleClick(self, item):
         """Used when an item of the openListW is clicked. Adds file to currFileW"""
         fname = item.toolTip()
@@ -502,6 +521,41 @@ class Window(QMainWindow):
         closeButton = QPushButton()
         closeButton.setText("Close")
         closeButton.clicked.connect(self.close)
+
+        addListButton = QPushButton()
+        addListButton.setText("Toggle List 2")
+        addListButton.setCheckable(True)
+        # Functions for adding and removing list 2
+        def openExtraBar():
+                extraAddButton = QPushButton()
+                extraAddButton.setText("Add")
+                extraAddButton.clicked.connect(self.extraAdd)
+                extraRemoveButton = QPushButton()
+                extraRemoveButton.setText("Remove")
+                extraRemoveButton.clicked.connect(self.extraRemove)
+                extraAddAndRemoveBox = QHBoxLayout()
+                extraAddAndRemoveBox.addWidget(extraAddButton)
+                extraAddAndRemoveBox.addWidget(extraRemoveButton)
+                self.extraCurrFileW = QListWidget()
+                self.extraCurrFileW.setSelectionMode(self.extraCurrFileW.SelectionMode.ExtendedSelection)
+                leftBar.addLayout(extraAddAndRemoveBox)
+                leftBar.addWidget(self.extraCurrFileW)
+        def closeExtraBar():
+                bar = leftBar.takeAt(4)
+                while bar.count() > 0:
+                    item = bar.takeAt(0)
+                    widget = item.widget()
+                    widget.deleteLater()
+                leftBar.removeWidget(self.extraCurrFileW)
+                self.extraCurrFileW.deleteLater()
+        def toggleExtraFileW(b):
+            if b:
+                openExtraBar()
+            else:
+                closeExtraBar()
+        #End functions for adding and remocing list 2
+        addListButton.clicked.connect(toggleExtraFileW)
+
         openAndCloseBox = QHBoxLayout()
         openAndCloseBox.addWidget(openButton)
         openAndCloseBox.addWidget(closeButton)
@@ -520,6 +574,7 @@ class Window(QMainWindow):
         leftBar.addWidget(self.currFileW)
 
         barHolder.addLayout(leftBar)
+
         mainView.addLayout(barHolder, 1)
         mainView.addLayout(self.workspace, 4)
         return mainView
