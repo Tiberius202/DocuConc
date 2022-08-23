@@ -302,8 +302,13 @@ class Window(QMainWindow):
         """Logic for launching help goes here..."""
         self.runProgress.setText("<b>Help > Help Content...</b> clicked")
     def about(self):
-        """Logic for showing an about dialog content goes here..."""
-        self.runProgress.setText("<b>Help > About...</b> clicked")
+        aboutBox =  QMessageBox(self)
+        aboutBox.setText("About")
+        aboutBox.setInformativeText("Made by:\nJonathan Wilson\nBenjamin Wilson\nDavid Brown - https://www.cmu.edu/dietrich/english/about-us/faculty/bios/david-brown.html\nDavid Kaufer - https://www.cmu.edu/dietrich/english/about-us/faculty/bios/david-kaufer.html\nSuguru Ishizaki - https://www.cmu.edu/dietrich/english/about-us/faculty/bios/suguru-ishizaki.html")
+        aboutBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+        aboutBox.setDefaultButton(QMessageBox.StandardButton.Ok)
+        aboutBox.setStyleSheet("QLabel{min-width: 700px;}")
+        aboutBox.exec()
 
     def openKeyword(self):
         """Opens the keyword input and ranges"""
