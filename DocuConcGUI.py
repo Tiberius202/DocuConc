@@ -9,7 +9,7 @@ import enum
 import docuscospacy.corpus_analysis as scoA
 
 #PyQt Front end for gui
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QTextEdit, QWidget, QFileDialog, QMessageBox, QLineEdit, QButtonGroup
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QTextEdit, QWidget, QFileDialog, QMessageBox, QLineEdit, QButtonGroup, QToolButton
 from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem, QPainter, QColor, QPen, QBrush
 from PyQt6.QtCore import Qt, QRect, QSortFilterProxyModel
 
@@ -78,49 +78,53 @@ class ModeSwitch(QPushButton):
 
 class Window(QMainWindow):
     """Window for PyQtGui. Wraps all PyQt functionality"""
-    def setViewMode(self, mode : ViewMode):
-        """Used to change the viewMode in other functions"""
-        self.viewMode = mode
-
+    def openSpan(self):
+        """Opens the keyword input and ranges"""
+        spanBar = QHBoxLayout()
+        self.ng_span = QLineEdit("3")
+        self.ng_span.setInputMask("D")
+        spanBar.addWidget(QLabel("Span of the N-Gram"))
+        spanBar.addWidget(self.ng_span)
+        self.workspace.insertLayout(2, spanBar)
     def openKeyword(self):
         """Opens the keyword input and ranges"""
         keywordBar = QHBoxLayout()
+        self.keyword = QLineEdit()
+        keywordBar.addWidget(QLabel("Keyword:"))
+        keywordBar.addWidget(self.keyword)
+        self.workspace.insertLayout(2, keywordBar)
+    def openCollBar(self):
+        """Opens the keyword input and ranges"""
+        keywordBar = QHBoxLayout()
         self.keyword = QLineEdit("Keyword")
-        self.ng_span = QLineEdit("3")
-        self.ng_span.setInputMask("D")
+        self.lSpan = QLineEdit("4")
+        self.lSpan.setInputMask("D")
+        self.rSpan = QLineEdit("4")
+        self.rSpan.setInputMask("D")
+        self.collButton= QToolButton()
+        self.collStat = QActionGroup(self.collButton)
+        self.collStat.addAction("pmi")
+        self.collStat.addAction("npmi")
+        self.collStat.addAction("pmi2")
+        self.collStat.addAction("pmi3")
+        self.collStat.setExclusive(True)
+        self.collStat.actions()[0].setChecked(True)
+        self.collButton
+        self.collButton.setAutoRaise(True)
+        self.collButton.addActions(self.collStat.actions())
         keywordBar.addWidget(self.keyword, 4)
-        keywordBar.addWidget(self.ng_span, 1)
+        keywordBar.addWidget(self.lSpan, 1)
+        keywordBar.addWidget(self.rSpan, 1)
+        keywordBar.addWidget(self.collButton, 1)
         self.workspace.insertLayout(2, keywordBar)
 
-    def closeKeyword(self):
+    def closeBar(self):
         """Closes the keyword input and ranges"""
         bar = self.workspace.takeAt(2)
         while bar.count() > 0:
             item = bar.takeAt(0)
             widget = item.widget()
             widget.deleteLater()
-
-    class ViewModeAction(QPushButton):
-        """Class used to make many similiar viewmode functions for updating the variable"""
-        def __init__(self, win, text : str, mode : ViewMode) -> None:
-            super().__init__(text)
-            self.win = win
-            self.mode = mode
-        def fn (self, checked : bool) -> None:
-            if checked:
-                def needsKeyword(m):
-                    return m == ViewMode.collacTable or m == ViewMode.KWICCenter
-                def needsSpan(m):
-                    return m == ViewMode.NGramTable
-                if       needsKeyword(self.mode) and not needsKeyword(self.win.viewMode):
-                    self.win.openKeyword()
-                elif not needsKeyword(self.mode) and     needsKeyword(self.win.viewMode):
-                    self.win.closeKeyword()
-                if       needsSpan(self.mode) and not needsSpan(self.win.viewMode):
-                    self.win.openKeyword()
-                elif not needsSpan(self.mode) and     needsSpan(self.win.viewMode):
-                    self.win.closeKeyword()
-                self.win.setViewMode(self.mode)
 
     def runSpacyModel(self):
         """
@@ -183,6 +187,26 @@ class Window(QMainWindow):
             raise Exception("Error: unknown self.posMode")
         self._outputFromtokenDict()
         self.runProgress.setText("Done")
+
+    def modeBarClicked (self, id, checked):
+        def needsKeyword(m):
+            return m == ViewMode.KWICCenter
+        def needsSpan(m):
+            return m == ViewMode.NGramTable
+        def needsColl(m):
+            return m == ViewMode.collacTable
+        if checked:
+            print("opening "+str(id))
+            if   needsKeyword(id):
+                self.openKeyword()
+            elif needsSpan(id) :
+                self.openSpan()
+            elif needsColl(id):
+                self.openCollBar()
+        else:
+            print("closing "+str(id))
+            if needsKeyword(id) or needsSpan(id) or needsColl(id):
+                self.closeBar()
 
     def openFile(self):
         """Opens files to the openFileDict and openFileW"""
@@ -350,19 +374,20 @@ class Window(QMainWindow):
 
     def _outputFromtokenDict(self):
         """
-        Initializes the output tree according to self.viewmode
+        Initializes the output tree according to the view mode
         Used in RunSpacyModel and after switching between part of speech and docuscope modes
         """
         if self.corp == None: return
-        self.outputFormat.buttons()[self.viewMode].setChecked(True)
+        vMode = self.outputFormat.checkedId()
+        self.outputFormat.buttons()[vMode].setChecked(True)
         self.pd = None
-        if   self.viewMode == ViewMode.freqTable:
+        if   vMode == ViewMode.freqTable:
             self.pd = scoA.frequency_table(self.tokenDict, self.non_punct, self.posMode)
-        elif self.viewMode == ViewMode.tagsTable:
+        elif vMode == ViewMode.tagsTable:
             self.pd = scoA.tags_table(self.tokenDict, self.non_punct, self.posMode)
-        elif self.viewMode == ViewMode.tagsDTM:
+        elif vMode == ViewMode.tagsDTM:
             self.pd = scoA.tags_dtm(self.tokenDict, self.posMode)
-        elif self.viewMode == ViewMode.NGramTable:
+        elif vMode == ViewMode.NGramTable:
             span = int(self.ng_span.text())
             if span < 2:
                 msgBox = QMessageBox(self)
@@ -383,11 +408,11 @@ class Window(QMainWindow):
                 span = 5
                 self.ng_span.setText(str(span))
             self.pd = scoA.ngrams_table(self.tokenDict, span, self.non_punct, self.posMode)
-        elif self.viewMode == ViewMode.collacTable:
+        elif vMode == ViewMode.collacTable:
             self.pd = scoA.coll_table(self.tokenDict, self.keyword.text(), count_by=self.posMode)
-        elif self.viewMode == ViewMode.KWICCenter:
+        elif vMode == ViewMode.KWICCenter:
             self.pd = scoA.kwic_center_node(self.corp, self.keyword.text())
-        elif self.viewMode == ViewMode.keyNessTable:
+        elif vMode == ViewMode.keyNessTable:
             #TODO: pd = scoA.keyness_table(target_counts, ref_counts)
             pass
         else:
@@ -465,20 +490,19 @@ class Window(QMainWindow):
         self.outputFormat = QButtonGroup()
         #Makes the actions in a row. Need that first self arguement so class know which object to update
         modeBox.addWidget(QPushButton("Token Frequency"))
-        modeBox.addWidget(self.ViewModeAction(self, "Tag Frequency",           ViewMode.tagsTable))
-        modeBox.addWidget(self.ViewModeAction(self, "Document Term Matrix",    ViewMode.tagsDTM))
-        modeBox.addWidget(self.ViewModeAction(self, "N-gram Frequencies",      ViewMode.NGramTable))
-        modeBox.addWidget(self.ViewModeAction(self, "Collacations",            ViewMode.collacTable))
-        modeBox.addWidget(self.ViewModeAction(self, "KWIC Table",              ViewMode.KWICCenter))
-        modeBox.addWidget(self.ViewModeAction(self, "Keyness Between Corpora", ViewMode.keyNessTable))
+        modeBox.addWidget(QPushButton("Tag Frequency"))
+        modeBox.addWidget(QPushButton("Document Term Matrix"))
+        modeBox.addWidget(QPushButton("N-gram Frequencies"))
+        modeBox.addWidget(QPushButton("Collacations"))
+        modeBox.addWidget(QPushButton("KWIC Table"))
+        modeBox.addWidget(QPushButton("Keyness Between Corpora"))
         for i in range(modeBox.count()):
             action = modeBox.itemAt(i).widget()
             action.setCheckable(True)
-#TODO            action.toggled.connect(action.fn)
             self.outputFormat.addButton(action, i)
-        self.viewMode = ViewMode.freqTable
         self.outputFormat.setExclusive(True)
-        self.outputFormat.buttons()[self.viewMode].setChecked(True)
+        self.outputFormat.buttons()[0].setChecked(True)
+        self.outputFormat.idToggled.connect(self.modeBarClicked)
         self.workspace.addLayout(modeBox)
 
         self.visuals = QHBoxLayout()
@@ -625,12 +649,11 @@ class Window(QMainWindow):
         """Creates Window. Initializes PyQt app"""
         #GUI setup
         super().__init__(parent)
-        self.setWindowTitle("BrownQt Work in Progress")
+        self.setWindowTitle("Docuconc 1.0")
         self.resize(1280, 720)
         centralWidget = QWidget()
         centralWidget.setLayout(self._createMainView())
         self.setCentralWidget(centralWidget)
-        self.viewMode = ViewMode.freqTable
         self._createMenuBar()
         #initialize model
         self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "spacy-model"))
