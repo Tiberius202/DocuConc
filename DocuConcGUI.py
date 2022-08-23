@@ -304,7 +304,7 @@ class Window(QMainWindow):
     def about(self):
         aboutBox =  QMessageBox(self)
         aboutBox.setText("About")
-        aboutBox.setInformativeText("Made by:\nJonathan Wilson\nBenjamin Wilson\nDavid Brown - https://www.cmu.edu/dietrich/english/about-us/faculty/bios/david-brown.html\nDavid Kaufer - https://www.cmu.edu/dietrich/english/about-us/faculty/bios/david-kaufer.html\nSuguru Ishizaki - https://www.cmu.edu/dietrich/english/about-us/faculty/bios/suguru-ishizaki.html")
+        aboutBox.setInformativeText("Made by:\nJonathan Wilson - Developer\nBenjamin Wilson - Developer\nDavid Brown - https://www.cmu.edu/dietrich/english/about-us/faculty/bios/david-brown.html\nDavid Kaufer - https://www.cmu.edu/dietrich/english/about-us/faculty/bios/david-kaufer.html\nSuguru Ishizaki - https://www.cmu.edu/dietrich/english/about-us/faculty/bios/suguru-ishizaki.html")
         aboutBox.setStandardButtons(QMessageBox.StandardButton.Ok)
         aboutBox.setDefaultButton(QMessageBox.StandardButton.Ok)
         aboutBox.setStyleSheet("QLabel{min-width: 700px;}")
