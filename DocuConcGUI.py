@@ -1,5 +1,3 @@
-from ast import keyword
-from statistics import mode
 import sys
 import spacy
 import os
@@ -103,21 +101,22 @@ class Window(QMainWindow):
         self.rSpan.setInputMask("D")
         self.collButton= QToolButton()
         self.collStat = QActionGroup(self.collButton)
-        pmi = QAction("  pmi")
-        pmi.setCheckable(True)
-        self.collStat.addAction(pmi)
-        npmi = QAction("npmi")
-        npmi.setCheckable(True)
-        self.collStat.addAction(npmi)
-        pmi2 = QAction("pmi2")
-        pmi2.setCheckable(True)
-        self.collStat.addAction(pmi2)
-        pmi3 = QAction("pmi3")
-        pmi3.setCheckable(True)
-        self.collStat.addAction(pmi3)
+        pmiAction = QAction("pmi")
+        pmiAction.setCheckable(True)
+        self.collStat.addAction(pmiAction)
+        npmiAction = QAction("npmi")
+        npmiAction.setCheckable(True)
+        self.collStat.addAction(npmiAction)
+        pmi2Action = QAction("pmi2")
+        pmi2Action.setCheckable(True)
+        self.collStat.addAction(pmi2Action)
+        pmi3Action = QAction("pmi3")
+        pmi3Action.setCheckable(True)
+        self.collStat.addAction(pmi3Action)
         self.collStat.setExclusive(True)
         self.collStat.actions()[0].setChecked(True)
-        self.collButton.setText("  pmi")
+        self.collButton.setMinimumWidth(50)
+        self.collButton.setText("pmi")
         self.collButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         self.collButton.setPopupMode(self.collButton.ToolButtonPopupMode.InstantPopup)
         self.collButton.setAutoRaise(True)
@@ -427,7 +426,7 @@ class Window(QMainWindow):
                 self.ng_span.setText(str(span))
             self.pd = scoA.ngrams_table(self.tokenDict, span, self.non_punct, self.posMode)
         elif vMode == ViewMode.collacTable:
-            self.pd = scoA.coll_table(self.tokenDict, self.keyword.text(), count_by=self.posMode)
+            self.pd = scoA.coll_table(self.tokenDict, self.keyword.text(), int(self.lSpan.text()), int(self.rSpan.text()), self.collStat.checkedAction().text(), self.posMode)
         elif vMode == ViewMode.KWICCenter:
             self.pd = scoA.kwic_center_node(self.corp, self.keyword.text())
         elif vMode == ViewMode.keyNessTable:
