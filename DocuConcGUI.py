@@ -208,7 +208,6 @@ class Window(QMainWindow):
         def needsColl(m):
             return m == ViewMode.collacTable
         if checked:
-            print("opening "+str(id))
             if   needsKeyword(id):
                 self.openKeyword()
             elif needsSpan(id) :
@@ -216,7 +215,6 @@ class Window(QMainWindow):
             elif needsColl(id):
                 self.openCollBar()
         else:
-            print("closing "+str(id))
             if needsKeyword(id) or needsSpan(id) or needsColl(id):
                 self.closeBar()
 
@@ -430,8 +428,20 @@ class Window(QMainWindow):
         elif vMode == ViewMode.KWICCenter:
             self.pd = scoA.kwic_center_node(self.corp, self.keyword.text())
         elif vMode == ViewMode.keyNessTable:
-            #TODO: pd = scoA.keyness_table(target_counts, ref_counts)
-            pass
+            if len(self.extraCurrFileDict) > 0:
+                self.runProgress.setText("Generating target frequency table")
+                targetCounts = scoA.frequency_table(self.tokenDict, self.non_punct, self.posMode)
+                self.runProgress.setText("Generating corpus from reference list")
+                extraCorp = Corpus.from_files(
+                    self.extraCurrFileDict.keys(),
+                    spacy_instance=self.nlp,
+                    raw_preproc=pre_process,
+                    spacy_token_attrs=['tag', 'ent_iob', 'ent_type', 'is_punct'],
+                    doc_label_fmt='{basename}', max_workers = 1)
+                self.runProgress.setText("Converting corpus to token dictionary")
+                extraDict = scoA.convert_corpus(extraCorp)
+                refCounts = scoA.frequency_table(extraDict, self.non_punct, self.posMode)
+                self.pd = scoA.keyness_table(targetCounts, refCounts)
         else:
             raise Exception("Unknown format. Should be impossible")
         #Update the visuals
