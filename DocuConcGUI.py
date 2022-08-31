@@ -50,7 +50,7 @@ class ModeSwitch(QPushButton):
         self.left = leftOption
         self.right = rightOption
         self.width = width
-        self.setMinimumWidth(self.width*2.5)
+        self.setMinimumWidth(int(self.width*2.5))
 
     def paintEvent(self, event):
         label = self.left if self.isChecked() else self.right
