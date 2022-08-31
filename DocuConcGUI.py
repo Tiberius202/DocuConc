@@ -42,19 +42,21 @@ class ViewMode(enum.IntEnum):
     keyNessTable = 6
 
 class ModeSwitch(QPushButton):
-    """Toggle switch used for POS button"""
-    def __init__(self, parent = None):
+    """Rounded toggle switch used for various modes"""
+    def __init__(self, leftOption, rightOption, width, parent = None):
         super().__init__(parent)
         self.setCheckable(True)
-        self.setMinimumWidth(66)
         self.setMinimumHeight(22)
+        self.left = leftOption
+        self.right = rightOption
+        self.width = width
+        self.setMinimumWidth(self.width*2.5)
 
     def paintEvent(self, event):
-        label = "DS" if self.isChecked() else "POS"
+        label = self.left if self.isChecked() else self.right
         bg_color = QColor(180,180,180) if self.isChecked() else QColor(180,180,180)
 
         radius = 10
-        width = 32
         center = self.rect().center()
 
         painter = QPainter(self)
@@ -66,11 +68,11 @@ class ModeSwitch(QPushButton):
         pen.setWidth(2)
         painter.setPen(pen)
 
-        painter.drawRoundedRect(QRect(-width, -radius, 2*width, 2*radius), radius, radius)
+        painter.drawRoundedRect(QRect(-self.width, -radius, 2*self.width, 2*radius), radius, radius)
         painter.setBrush(QBrush(bg_color))
-        sw_rect = QRect(-radius, -radius, width + radius, 2*radius)
+        sw_rect = QRect(-radius, -radius, self.width + radius, 2*radius)
         if not self.isChecked():
-            sw_rect.moveLeft(-width)
+            sw_rect.moveLeft(-self.width)
         painter.drawRoundedRect(sw_rect, radius, radius)
         painter.drawText(sw_rect, Qt.AlignmentFlag.AlignCenter, label)
 
@@ -90,6 +92,12 @@ class Window(QMainWindow):
         self.keyword = QLineEdit()
         keywordBar.addWidget(QLabel("Keyword:"))
         keywordBar.addWidget(self.keyword)
+        keywordBar.addWidget(QLabel("Case sensitive: "))
+        self.keywordIgnoreCase = ModeSwitch("Case Sensitive", "Ignore Case", 100)
+        keywordBar.addWidget(self.keywordIgnoreCase)
+        keywordBar.addWidget(QLabel("Globular Search: "))
+        self.keywordGlob = ModeSwitch("Off", "On", 32)
+        keywordBar.addWidget(self.keywordGlob)
         self.workspace.insertLayout(2, keywordBar)
     def openCollBar(self):
         """Opens the keyword input and ranges"""
@@ -344,24 +352,6 @@ class Window(QMainWindow):
         aboutBox.setStyleSheet("QLabel{min-width: 700px;}")
         aboutBox.exec()
 
-    def openKeyword(self):
-        """Opens the keyword input and ranges"""
-        keywordBar = QHBoxLayout()
-        self.keyword = QLineEdit("Keyword")
-        self.ng_span = QLineEdit("3")
-        self.ng_span.setInputMask("D")
-        keywordBar.addWidget(self.keyword, 4)
-        keywordBar.addWidget(self.ng_span, 1)
-        self.workspace.insertLayout(2, keywordBar)
-
-    def closeKeyword(self):
-        """Closes the keyword input and ranges"""
-        bar = self.workspace.takeAt(2)
-        while bar.count() > 0:
-            item = bar.takeAt(0)
-            widget = item.widget()
-            widget.deleteLater()
-
     def openListDoubleClick(self, item):
         """Used when an item of the openListW is clicked. Adds file to currFileW"""
         fname = item.toolTip()
@@ -464,6 +454,7 @@ class Window(QMainWindow):
                     item = QStandardItem()
                     item.setData(str(ite), Qt.ItemDataRole.DisplayRole)
                     item.setData(ite, Qt.ItemDataRole.UserRole)
+                    item.setEditable(False)
                     items.append(item)
                 self.outputModel.appendRow(items)
             self.outputTree.setSortingEnabled(True)
@@ -540,6 +531,7 @@ class Window(QMainWindow):
         self.proxyModel.setSortRole(Qt.ItemDataRole.UserRole)
         self.proxyModel.setSourceModel(self.outputModel)
         self.outputTree.setModel(self.proxyModel)
+        self.outputTree.setSelectionBehavior(self.outputTree.SelectionBehavior.SelectRows)
         self.outputTree.setColumnWidth(0, 200)
         self.outputTree.setUniformRowHeights(True)
         self.visuals.addWidget(self.outputTree, 1)
@@ -580,7 +572,7 @@ class Window(QMainWindow):
         runButton = QPushButton()
         runButton.setText("Run analyzer")
         runButton.clicked.connect(self.runSpacyModel)
-        self.modeButton = ModeSwitch()
+        self.modeButton = ModeSwitch("DS", "POS", 32)
         self.modeButton.setToolTip("Click to change to Docuscope tagging")
         self.modeButton.clicked.connect(self.toggleMode)
         analButtons.addWidget(runButton, 3)
