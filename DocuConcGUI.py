@@ -141,6 +141,10 @@ class Window(QMainWindow):
         keywordBar.addWidget(QLabel("Frequency Normalization:"))
         keywordBar.addWidget(self.collButton, 1)
         self.workspace.insertLayout(2, keywordBar)
+    
+    def openRef(self):
+        if not self.addListButton.isChecked():
+            self.addListButton.click()
 
     def closeBar(self):
         """Closes the keyword input and ranges"""
@@ -219,6 +223,8 @@ class Window(QMainWindow):
             return m == ViewMode.NGramTable
         def needsColl(m):
             return m == ViewMode.collacTable
+        def needsRef(m):
+            return m == ViewMode.keyNessTable
         if checked:
             if   needsKeyword(id):
                 self.openKeyword()
@@ -226,6 +232,8 @@ class Window(QMainWindow):
                 self.openSpan()
             elif needsColl(id):
                 self.openCollBar()
+            elif needsRef(id):
+                self.openRef()
         else:
             if needsKeyword(id) or needsSpan(id) or needsColl(id):
                 self.closeBar()
@@ -609,7 +617,7 @@ class Window(QMainWindow):
         closeButton.setText("Close")
         closeButton.clicked.connect(self.close)
         self.addListButton = QPushButton()
-        self.addListButton.setText("Toggle Ref. Corpus")
+        self.addListButton.setText("Reference Corpus")
         self.addListButton.setCheckable(True)
         # Functions for adding and removing list 2
         def openExtraBar():
@@ -682,14 +690,17 @@ class Window(QMainWindow):
         #initialize model
         self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "spacy-model"))
         #Functionality
-        #Functional part of Open File List. Other argument is None 
+        #Functional part of Open File List.
         self.openFileDict = {}
         #Used when a docView file is open. stores which file it is
         self.docViewFile = None
         #Keeps track of additions to the Current File List. Added when analyzer is run
         self.openFilesToBeAdded = []
-        #Functional part of Open File List. Other argument is None 
+        #Functional part of Current File List.
         self.currFileDict = {}
+        #Functional part of ExtraCurrFileW.
+        self.extraCurrFileDict = {}
+        #Corpus. Used by run analyzer. stored to buffer so add_files can be used
         self.corp = None
         #panda object. What is shown in outputTree when made in _outputFromtokenDict
         self.pd = None
