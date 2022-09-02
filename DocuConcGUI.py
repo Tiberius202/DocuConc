@@ -102,7 +102,7 @@ class Window(QMainWindow):
     def openCollBar(self):
         """Opens the keyword input and ranges"""
         keywordBar = QHBoxLayout()
-        self.keyword = QLineEdit("Keyword")
+        self.keyword = QLineEdit("")
         self.lSpan = QLineEdit("4")
         self.lSpan.setInputMask("D")
         self.rSpan = QLineEdit("4")
@@ -132,9 +132,13 @@ class Window(QMainWindow):
         def changeText (action):
             self.collButton.setText(action.text())
         self.collButton.triggered.connect(changeText)
+        keywordBar.addWidget(QLabel("Keyword:"))
         keywordBar.addWidget(self.keyword, 4)
+        keywordBar.addWidget(QLabel("Left span:"))
         keywordBar.addWidget(self.lSpan, 1)
+        keywordBar.addWidget(QLabel("Right span:"))
         keywordBar.addWidget(self.rSpan, 1)
+        keywordBar.addWidget(QLabel("Frequency Normalization:"))
         keywordBar.addWidget(self.collButton, 1)
         self.workspace.insertLayout(2, keywordBar)
 
@@ -240,7 +244,7 @@ class Window(QMainWindow):
                 self.openFileW.addItem(listItem)
         self.openFileW.sortItems()
     def saveFile(self):
-        """Saves outputTree to csv using pandas to csv command"""
+        """TODO: replace CSV. Saves outputTree to token seperated values using pandas to json command"""
         if self.pd is None:
             msgBox =  QMessageBox(self)
             msgBox.setText("No results to save")
@@ -416,7 +420,7 @@ class Window(QMainWindow):
         elif vMode == ViewMode.collacTable:
             self.pd = scoA.coll_table(self.tokenDict, self.keyword.text(), int(self.lSpan.text()), int(self.rSpan.text()), self.collStat.checkedAction().text(), self.posMode)
         elif vMode == ViewMode.KWICCenter:
-            self.pd = scoA.kwic_center_node(self.corp, self.keyword.text())
+            self.pd = scoA.kwic_center_node(self.corp, self.keyword.text(), not(self.keywordIgnoreCase.isChecked()), not (self.keywordGlob.isChecked()))
         elif vMode == ViewMode.keyNessTable:
             if len(self.extraCurrFileDict) > 0:
                 self.runProgress.setText("Generating target frequency table")
@@ -444,7 +448,6 @@ class Window(QMainWindow):
             headers = self.pd.columns
             self.outputModel.setHorizontalHeaderLabels(headers)
             self.outputModel.setColumnCount(len(headers))
-            self.outputTree.header().setSortIndicatorShown(True)
             self.outputTree.setSortingEnabled(False)
             self.outputLbl.setText("Row Count: "+str(len(self.pd)))
             #Fill in data. Sorting should be off when inserting for performance
@@ -540,7 +543,9 @@ class Window(QMainWindow):
         filterBox = QHBoxLayout()
         filterBox.addWidget(QLabel("Filter: "))
         self.searchbar = QLineEdit()
-        self.searchbar.textChanged.connect(self.proxyModel.setFilterFixedString)
+        def exactFilter(s):
+            return self.proxyModel.setFilterRegularExpression("\A"+s.replace("_", ".*")+"\z")
+        self.searchbar.textChanged.connect(exactFilter)
         filterBox.addWidget(self.searchbar, 3)
         filterBox.addWidget(QLabel("Column: "))
         self.filterColumnSelector = QLineEdit("1")
