@@ -8,7 +8,7 @@ import docuscospacy.corpus_analysis as scoA
 
 #PyQt Front end for gui
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QListWidget, QListWidgetItem, QTreeView, QTextEdit, QWidget, QFileDialog, QMessageBox, QLineEdit, QButtonGroup, QToolButton
-from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem, QPainter, QColor, QPen, QBrush
+from PyQt6.QtGui import QAction, QActionGroup, QStandardItemModel, QStandardItem, QPainter, QColor, QPen, QBrush, QIcon
 from PyQt6.QtCore import Qt, QRect, QSortFilterProxyModel
 
 #TMToolkit for managing corpora. Used by docuscospacy
@@ -712,5 +712,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
     win = Window()
+    win.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__) , "icon.png")))
     win.show()
     sys.exit(app.exec())
