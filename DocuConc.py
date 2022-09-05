@@ -489,7 +489,9 @@ class Window(QMainWindow):
         fileMenu.addSeparator()
 
         exitAction = QAction("Exit", self)
-        exitAction.triggered.connect(self.close)
+        def quitApp(b):
+            QApplication.quit()
+        exitAction.triggered.connect(quitApp)
         fileMenu.addAction(exitAction)
         #ViewMode related functionality
         viewMenu = menuBar.addMenu("View")
@@ -552,7 +554,10 @@ class Window(QMainWindow):
         filterBox.addWidget(QLabel("Filter: "))
         self.searchbar = QLineEdit()
         def exactFilter(s):
-            return self.proxyModel.setFilterRegularExpression("\A"+s.replace("_", ".*")+"\z")
+            if s == "":
+                return self.proxyModel.setFilterRegularExpression("")
+            else:
+                return self.proxyModel.setFilterRegularExpression("\A"+s.replace("_", ".*")+"\z")
         self.searchbar.textChanged.connect(exactFilter)
         filterBox.addWidget(self.searchbar, 3)
         filterBox.addWidget(QLabel("Column: "))

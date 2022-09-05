@@ -1,1 +1,1 @@
-pyinstaller -F --add-data "spacy-model;spacy-model" --add-data "icon.png;icon.png" -i "icons\icon_256x256.ico" .\DocuConcGUI.py
+pyinstaller -F --add-data "spacy-model;spacy-model" --add-data "icon.png;icon.png" -i "icons\icon_256x256.ico" .\DocuConc.py
