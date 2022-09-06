@@ -388,6 +388,10 @@ class Window(QMainWindow):
         else:
             self.visuals.removeWidget(self.inputText)
             self.inputText.deleteLater()
+            self.openFilesToBeAdded = []
+            self.corp = None
+            for item in self.currFileDict.keys():
+                self.openFilesToBeAdded.append(item)
 
     def _outputFromtokenDict(self):
         """
@@ -682,10 +686,11 @@ class Window(QMainWindow):
         mainView.addLayout(self.workspace, 4)
         return mainView
 
-    def __init__(self, parent=None):
+    def __init__(self, working_directory, parent=None):
         """Creates Window. Initializes PyQt app"""
         #GUI setup
         super().__init__(parent)
+        self.setWindowIcon(QIcon(os.path.join(working_directory , "icon.png")))
         self.setWindowTitle("Docuconc 1.0")
         self.resize(1280, 720)
         centralWidget = QWidget()
@@ -693,7 +698,7 @@ class Window(QMainWindow):
         self.setCentralWidget(centralWidget)
         self._createMenuBar()
         #initialize model
-        self.nlp = spacy.load(os.path.join(os.path.dirname(__file__) , "spacy-model"))
+        self.nlp = spacy.load(os.path.join(working_directory , "spacy-model"))
         #Functionality
         #Functional part of Open File List.
         self.openFileDict = {}
@@ -713,10 +718,15 @@ class Window(QMainWindow):
         self.posMode = "pos"
 
 if __name__ == "__main__":
+    """Find working directory. Important for installable"""
+    try:
+        wd = sys._MEIPASS
+    except AttributeError:
+        wd = os.path.dirname(__file__)
     """Boilerplate for running PyQt App. Uses Window class"""
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
-    win = Window()
-    win.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__) , "icon.png")))
+    app.setWindowIcon(QIcon(os.path.join(wd, "icon.png")))
+    win = Window(wd)
     win.show()
     sys.exit(app.exec())
