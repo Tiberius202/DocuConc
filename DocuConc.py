@@ -251,8 +251,19 @@ class Window(QMainWindow):
                 listItem.setText(fname.replace("\\", "/").split("/")[-1])
                 self.openFileW.addItem(listItem)
         self.openFileW.sortItems()
+
+    def toTSV(self, path, seperator):
+        file = open(path, "w+")
+        outputString = ""
+        for i in range(self.proxyModel.rowCount()):
+            for j in range(self.proxyModel.columnCount() - 1):
+                outputString += self.proxyModel.data(self.proxyModel.index(i, j), Qt.ItemDataRole.DisplayRole) + seperator
+            outputString += self.proxyModel.data(self.proxyModel.index(i, self.proxyModel.columnCount()-1), Qt.ItemDataRole.DisplayRole)
+            outputString += "\n"
+        file.write(outputString)
+        file.close()
     def saveFile(self):
-        """TODO: replace CSV. Saves outputTree to token seperated values using pandas to json command"""
+        """Default save to output.tsv in same directory"""
         if self.pd is None:
             msgBox =  QMessageBox(self)
             msgBox.setText("No results to save")
@@ -261,8 +272,25 @@ class Window(QMainWindow):
             msgBox.setDefaultButton(QMessageBox.StandardButton.Ok)
             msgBox.exec()
         else:
-            selectedFileName = QFileDialog.getSaveFileName(self, 'Save File', filter = "Comma Separated Values (*.csv)")
-            self.pd.to_csv(selectedFileName[0])
+            if   self.defaultFile[1] == "Tab Seperated Values (*.tsv)":
+                self.toTSV(self.defaultFile[0], "\t")
+            elif self.defaultFile[1] == "Comma Separated Values (*.csv)":
+                self.toTSV(self.defaultFile[0], ", ")
+            elif self.defaultFile[1] == "JavaScript Object Notation(*.json)":
+                self.pd.to_json(self.defaultFile[0])
+            self.runProgress.setText("Successfully saved to " + self.defaultFile[0])
+    def saveFileAs(self):
+        """Saves outputTree to file type of choice"""
+        if self.pd is None:
+            msgBox =  QMessageBox(self)
+            msgBox.setText("No results to save")
+            msgBox.setInformativeText("Load files with open files\nAdd them to the workspace\nRun the analyzer\nThen save the results")
+            msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+            msgBox.setDefaultButton(QMessageBox.StandardButton.Ok)
+            msgBox.exec()
+        else:
+            self.defaultFile = QFileDialog.getSaveFileName(self, 'Save File', filter = "Tab Seperated Values (*.tsv);;Comma Separated Values (*.csv);;JavaScript Object Notation(*.json)")
+            self.saveFile()
     def close(self):
         """Closes selected files. Removes from all lists and fileDicts"""
         fnames = self.openFileW.selectedItems()
@@ -485,11 +513,12 @@ class Window(QMainWindow):
         openAction = QAction("&Open Files", self)
         openAction.triggered.connect(self.openFile)
         fileMenu.addAction(openAction)
-
         saveAction = QAction("&Save", self)
         saveAction.triggered.connect(self.saveFile)
         fileMenu.addAction(saveAction)
-
+        saveAsAction = QAction("&Save as", self)
+        saveAsAction.triggered.connect(self.saveFileAs)
+        fileMenu.addAction(saveAsAction)
         fileMenu.addSeparator()
 
         exitAction = QAction("Exit", self)
@@ -716,6 +745,8 @@ class Window(QMainWindow):
         self.pd = None
         #posTagging vs docuscope tagging mode
         self.posMode = "pos"
+        #default file to save to when save is used.
+        self.defaultFile = ("output.tsv", "Tab Seperated Values (*.tsv)")
 
 if __name__ == "__main__":
     """Find working directory. Important for installable"""
